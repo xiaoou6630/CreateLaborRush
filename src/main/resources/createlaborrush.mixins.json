@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "package": "com.xiaoou.rush.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "WorkerSeatBlockEntityMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  },
+  "refmap": "createlaborrush.mixins.refmap.json"
+}
