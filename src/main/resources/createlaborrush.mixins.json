@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.xiaoou.rush.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "createlaborrush.refmap.json",
+  "mixins": [
+    "WorkerSeatBlockEntityMixin",
+    "LeadItemMixin"
+  ],
+  "client": [],
+  "server": []
+}

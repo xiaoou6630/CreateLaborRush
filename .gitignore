@@ -1,0 +1,32 @@
+# Gradle 构建缓存
+.gradle/
+build/
+out/
+libs/
+
+# IDE 配置文件（如果你是 IDEA 或 Eclipse）
+.idea/
+*.iml
+*.iws
+*.ipr
+.classpath
+.project
+.settings/
+.vscode/
+
+# 运行环境和日志
+run/
+logs/
+*.log
+
+# 模板文档（已删除，以防万一）
+AI_MIGRATION_GUIDE.md
+CURSEFORGE_DESCRIPTION.md
+TEMPLATE_LICENSE.txt
+mixin-registry.md
+
+# 其他临时文件
+*.tmp
+*.lock
+*.swp
+*.class
