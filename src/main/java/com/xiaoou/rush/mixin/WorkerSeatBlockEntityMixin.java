@@ -70,16 +70,22 @@ public abstract class WorkerSeatBlockEntityMixin {
         require = 1
     )
     private int laborrush$overrideBatchSize(SeatMaterial material) {
-        // ✅ 创造座椅直接放行
+        // 创造座椅直接放行
         if (material == SeatMaterial.CREATIVE) {
             return material.getBatchSize();
         }
 
         LivingEntity worker = laborrush$findWorker();
         if (worker != null && worker.hasEffect(ModEffects.WORK_EFFECT)) {
-            int customBatch = worker.getPersistentData().getInt("laborrush.batchSize");
+            int amplifier = worker.getEffect(ModEffects.WORK_EFFECT).getAmplifier();
+            int customBatch = 0;
+            if (amplifier >= 2) {
+                customBatch = 64;
+            } else if (amplifier == 1) {
+                customBatch = 32;
+            }
             if (customBatch > 0) {
-                return customBatch;  // 32 或 64
+                return customBatch;
             }
         }
         return material.getBatchSize();
@@ -136,7 +142,7 @@ public abstract class WorkerSeatBlockEntityMixin {
         if (chance > 0 && worker.getRandom().nextDouble() < chance) {
             int currentCount = this.processingStack.getCount();
 
-            // ✅ 使用配置文件中的销毁比例范围
+            // 使用配置文件中的销毁比例范围
             double minRatio = Config.DESTROY_RATIO_MIN.get();
             double maxRatio = Config.DESTROY_RATIO_MAX.get();
 
@@ -155,7 +161,7 @@ public abstract class WorkerSeatBlockEntityMixin {
                 int remaining = currentCount - toDestroy;
 
                 if (remaining > 0) {
-                    // ✅ 保留剩余物品，走正常流程产出
+                    // 保留剩余物品，走正常流程产出
                     this.processingStack.setCount(remaining);
 
                     // 播放销毁音效
@@ -168,13 +174,13 @@ public abstract class WorkerSeatBlockEntityMixin {
                     }
                     selfBE.setChanged();
 
-                    // ✅ 走原逻辑产出剩余物品
+                    // 走原逻辑产出剩余物品
                     this.finishProcessing();
                     return;
                 }
             }
 
-            // ✅ 只剩 1 个或全部被销毁时，走原销毁逻辑
+            // 只剩 1 个或全部被销毁时，走原销毁逻辑
             this.processingStack = ItemStack.EMPTY;
             this.updateHand();
             this.outputCooldown = 1;

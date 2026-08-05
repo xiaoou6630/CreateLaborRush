@@ -1,22 +1,33 @@
 package com.xiaoou.rush.handler;
 
+import com.simibubi.create.content.contraptions.actors.seat.SeatEntity;
 import com.xiaoou.rush.CreateLaborRush;
 import com.xiaoou.rush.ModEffects;
 import com.yyn.labor.util.WorkerUtil;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.AABB;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
 
 @EventBusSubscriber(modid = CreateLaborRush.MODID)
 public class LeadHandler {
+
+    private static final int WHIP_COOLDOWN_TICKS = 100; // 5 seconds
 
     @SubscribeEvent
     public static void onAttackEntity(AttackEntityEvent event) {
@@ -28,54 +39,124 @@ public class LeadHandler {
         if (!(target instanceof LivingEntity living) || !WorkerUtil.isWorkerEntity(target))
             return;
 
-        if (target.level().isClientSide) return;
+        var level = target.level();
+        if (level.isClientSide) return;
 
-        // ✅ 检查火焰附加附魔等级（NeoForge 1.21 正确写法）
         int fireAspectLevel = 0;
-        var holder = target.registryAccess()
-            .holder(Enchantments.FIRE_ASPECT);
-        if (holder.isPresent()) {
-            fireAspectLevel = stack.getEnchantments().getLevel(holder.get());
+        var faHolder = target.registryAccess().holder(Enchantments.FIRE_ASPECT);
+        if (faHolder.isPresent()) {
+            fireAspectLevel = stack.getEnchantments().getLevel(faHolder.get());
         }
 
-        int batchSize = 0;
-        boolean isSupercharged = false;
+        int channelingLevel = 0;
+        var chHolder = target.registryAccess().holder(Enchantments.CHANNELING);
+        if (chHolder.isPresent()) {
+            channelingLevel = stack.getEnchantments().getLevel(chHolder.get());
+        }
 
-        if (fireAspectLevel >= 2) {
+        // Shift + Left click: Lightning Five-Whip
+        if (player.isShiftKeyDown()) {
+            triggerLightningWhip(player, level, fireAspectLevel, channelingLevel);
+            return;
+        }
+
+        // Normal single-target behavior
+        applyWorkToWorker(living, level, fireAspectLevel, channelingLevel);
+    }
+
+    private static void applyWorkToWorker(LivingEntity living, Level level, int fireAspectLevel, int channelingLevel) {
+        int amplifier;
+        int batchSize;
+        boolean isSupercharged;
+        SimpleParticleType particleType = null;
+        int particleCount = 0;
+
+        if (channelingLevel > 0) {
+            amplifier = 2;
             batchSize = 64;
             isSupercharged = true;
-            spawnWorkParticles(living, ParticleTypes.SOUL_FIRE_FLAME, 30);
+            spawnLightningAt(living, level);
+        } else if (fireAspectLevel >= 2) {
+            amplifier = 2;
+            batchSize = 64;
+            isSupercharged = true;
+            particleType = ParticleTypes.SOUL_FIRE_FLAME;
+            particleCount = 30;
         } else if (fireAspectLevel == 1) {
+            amplifier = 1;
             batchSize = 32;
             isSupercharged = true;
-            spawnWorkParticles(living, ParticleTypes.FLAME, 20);
+            particleType = ParticleTypes.FLAME;
+            particleCount = 20;
+        } else {
+            amplifier = 0;
+            batchSize = 0;
+            isSupercharged = false;
         }
 
         living.getPersistentData().putInt("laborrush.batchSize", batchSize);
         living.getPersistentData().putBoolean("laborrush.supercharged", isSupercharged);
-        living.getPersistentData().putInt("laborrush.fireAspectLevel", fireAspectLevel);
+        living.getPersistentData().putInt("laborrush.amplifier", amplifier);
 
         living.addEffect(new MobEffectInstance(
             ModEffects.WORK_EFFECT,
             90 * 20,
-            0,
+            amplifier,
             false,
             true,
             false
         ));
+
+        if (particleType != null) {
+            spawnWorkParticles(living, particleType, particleCount);
+        }
     }
 
-    /**
-     * ✅ 修复：使用 ParticleOptions 而不是 ParticleType
-     */
-    private static void spawnWorkParticles(LivingEntity living, net.minecraft.core.particles.SimpleParticleType particleType, int count) {
+    private static void triggerLightningWhip(Player player, Level level, int fireAspectLevel, int channelingLevel) {
+        if (!(level instanceof ServerLevel serverLevel)) return;
+
+        // Check cooldown
+        var playerData = player.getPersistentData();
+        long lastWhip = playerData.getLong("laborrush.lastWhipTime");
+        if (level.getGameTime() - lastWhip < WHIP_COOLDOWN_TICKS) return;
+        playerData.putLong("laborrush.lastWhipTime", level.getGameTime());
+
+        // Find all workers within 5 blocks
+        AABB area = new AABB(player.blockPosition()).inflate(5);
+        boolean foundAny = false;
+        for (SeatEntity seat : level.getEntitiesOfClass(SeatEntity.class, area)) {
+            for (Entity passenger : seat.getPassengers()) {
+                if (passenger instanceof LivingEntity living && WorkerUtil.isWorkerEntity(passenger)) {
+                    foundAny = true;
+                    applyWorkToWorker(living, level, fireAspectLevel, channelingLevel);
+                    // Always spawn lightning for visual effect
+                    if (channelingLevel > 0 || serverLevel.random.nextFloat() < 0.3f) {
+                        spawnLightningAt(living, level);
+                    }
+                }
+            }
+        }
+
+        if (foundAny) {
+            // Play thunder sound
+            level.playSound(null, player.blockPosition(), SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.WEATHER, 1.0F, 1.0F);
+        }
+    }
+
+    private static void spawnLightningAt(LivingEntity living, Level level) {
+        LightningBolt lightning = new LightningBolt(EntityType.LIGHTNING_BOLT, level);
+        lightning.setPos(living.getX(), living.getY(), living.getZ());
+        lightning.setVisualOnly(true);
+        level.addFreshEntity(lightning);
+    }
+
+    private static void spawnWorkParticles(LivingEntity living, SimpleParticleType particleType, int count) {
         if (!(living.level() instanceof ServerLevel serverLevel)) return;
         var pos = living.position();
         for (int i = 0; i < count; i++) {
             double xOff = (living.getRandom().nextDouble() - 0.5) * 1.2;
             double zOff = (living.getRandom().nextDouble() - 0.5) * 1.2;
             double yOff = living.getRandom().nextDouble() * 1.5 + 0.2;
-            // ✅ 使用 sendParticles(ParticleOptions, ...) 正确重载
             serverLevel.sendParticles(
                 particleType,
                 pos.x + xOff,
