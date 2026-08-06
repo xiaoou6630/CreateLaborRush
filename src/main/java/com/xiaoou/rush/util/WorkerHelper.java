@@ -11,16 +11,22 @@ import net.minecraft.world.phys.AABB;
 
 public class WorkerHelper {
 
-    public static void applyWorkToNearbyWorkers(Level level, AABB area) {
-        if (level.isClientSide) return;
+    /**
+     * 给范围内的工人附加 Work 效果
+     * @return 受影响的工人数量
+     */
+    public static int applyWorkToNearbyWorkers(Level level, AABB area) {
+        if (level.isClientSide) return 0;
 
+        int count = 0;
         for (SeatEntity seat : level.getEntitiesOfClass(SeatEntity.class, area)) {
             for (Entity passenger : seat.getPassengers()) {
                 if (passenger instanceof LivingEntity living && WorkerUtil.isWorkerEntity(passenger)) {
-                    // ✅ 直接使用 DeferredHolder
                     living.addEffect(new MobEffectInstance(ModEffects.WORK_EFFECT, 1800, 0, false, true, false));
+                    count++;
                 }
             }
         }
+        return count;
     }
 }
