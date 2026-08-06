@@ -3,16 +3,16 @@ package com.xiaoou.rush.handler;
 import com.simibubi.create.content.contraptions.actors.seat.SeatEntity;
 import com.xiaoou.rush.CreateLaborRush;
 import com.xiaoou.rush.ModEffects;
+import com.xiaoou.rush.util.WorkerTypeDetector;
 import com.yyn.labor.util.WorkerUtil;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -37,7 +37,8 @@ public class LeadHandler {
         if (stack.getItem() != Items.LEAD) return;
 
         Entity target = event.getTarget();
-        if (!(target instanceof LivingEntity living) || !WorkerUtil.isWorkerEntity(target))
+        if (!(target instanceof LivingEntity living)) return;
+        if (!WorkerUtil.isWorkerEntity(target) && !WorkerTypeDetector.isWorker(living))
             return;
 
         Level level = target.level();
@@ -53,10 +54,10 @@ public class LeadHandler {
         }
 
         // Normal single-target behavior
-        applyWorkToWorker(living, level, fireAspectLevel, channelingLevel);
+        applyWorkToWorker(living, level, fireAspectLevel, channelingLevel, player);
     }
 
-    private static void applyWorkToWorker(LivingEntity living, Level level, int fireAspectLevel, int channelingLevel) {
+    private static void applyWorkToWorker(LivingEntity living, Level level, int fireAspectLevel, int channelingLevel, Player player) {
         int amplifier;
         int batchSize;
         boolean isSupercharged;
@@ -67,19 +68,31 @@ public class LeadHandler {
             amplifier = 2;
             batchSize = 64;
             isSupercharged = true;
-            spawnLightningAt(living, level);
+            LightningEffectHandler.triggerLightningEffect(level, living);
+            // 成就：天罚
+            if (player instanceof ServerPlayer sp) {
+                AchievementHandler.grantAchievement(sp, AchievementHandler.LIGHTNING_WHIP);
+            }
         } else if (fireAspectLevel >= 2) {
             amplifier = 2;
             batchSize = 64;
             isSupercharged = true;
             particleType = ParticleTypes.SOUL_FIRE_FLAME;
             particleCount = 30;
+            // 成就：地狱火
+            if (player instanceof ServerPlayer sp) {
+                AchievementHandler.grantAchievement(sp, AchievementHandler.FIRE_ASPECT_2);
+            }
         } else if (fireAspectLevel == 1) {
             amplifier = 1;
             batchSize = 32;
             isSupercharged = true;
             particleType = ParticleTypes.FLAME;
             particleCount = 20;
+            // 成就：火焰使者
+            if (player instanceof ServerPlayer sp) {
+                AchievementHandler.grantAchievement(sp, AchievementHandler.FIRE_ASPECT_1);
+            }
         } else {
             amplifier = 0;
             batchSize = 0;
@@ -99,6 +112,24 @@ public class LeadHandler {
             false
         ));
 
+        // 成就：第一鞭 & 周扒皮
+        if (player instanceof ServerPlayer sp) {
+            // 第一次抽打
+            var playerData = player.getPersistentData();
+            if (!playerData.getBoolean("laborrush.hasFirstWhip")) {
+                playerData.putBoolean("laborrush.hasFirstWhip", true);
+                AchievementHandler.grantAchievement(sp, AchievementHandler.FIRST_WHIP);
+            }
+
+            // 同一工人抽打次数
+            String whipKey = "laborrush.whipCount_" + living.getStringUUID();
+            int whipCount = playerData.getInt(whipKey) + 1;
+            playerData.putInt(whipKey, whipCount);
+            if (whipCount >= 10) {
+                AchievementHandler.grantAchievement(sp, AchievementHandler.WHIP_10_TIMES);
+            }
+        }
+
         if (particleType != null) {
             spawnWorkParticles(living, particleType, particleCount);
         }
@@ -116,30 +147,30 @@ public class LeadHandler {
         // Find all workers within 5 blocks
         AABB area = new AABB(player.blockPosition()).inflate(5);
         boolean foundAny = false;
+        int hitCount = 0;
         for (SeatEntity seat : level.getEntitiesOfClass(SeatEntity.class, area)) {
             for (Entity passenger : seat.getPassengers()) {
                 if (passenger instanceof LivingEntity living && WorkerUtil.isWorkerEntity(passenger)) {
                     foundAny = true;
-                    applyWorkToWorker(living, level, fireAspectLevel, channelingLevel);
+                    hitCount++;
+                    applyWorkToWorker(living, level, fireAspectLevel, channelingLevel, player);
                     // Always spawn lightning for visual effect
                     if (channelingLevel > 0 || serverLevel.random.nextFloat() < 0.3f) {
-                        spawnLightningAt(living, level);
+                        LightningEffectHandler.triggerLightningEffect(level, living);
                     }
                 }
             }
+        }
+
+        // 成就：闪电五连鞭 — 一次击中5+工人
+        if (hitCount >= 5 && player instanceof ServerPlayer sp) {
+            AchievementHandler.grantAchievement(sp, AchievementHandler.LIGHTNING_5_WHIP);
         }
 
         if (foundAny) {
             // Play thunder sound
             level.playSound(null, player.blockPosition(), SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.WEATHER, 1.0F, 1.0F);
         }
-    }
-
-    private static void spawnLightningAt(LivingEntity living, Level level) {
-        LightningBolt lightning = new LightningBolt(EntityType.LIGHTNING_BOLT, level);
-        lightning.setPos(living.getX(), living.getY(), living.getZ());
-        lightning.setVisualOnly(true);
-        level.addFreshEntity(lightning);
     }
 
     private static void spawnWorkParticles(LivingEntity living, SimpleParticleType particleType, int count) {
