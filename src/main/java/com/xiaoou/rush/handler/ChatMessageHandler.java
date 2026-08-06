@@ -4,11 +4,9 @@ import com.xiaoou.rush.CreateLaborRush;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
-import net.neoforged.fml.common.EventBusSubscriber;
-
 import java.util.Random;
 
-@EventBusSubscriber(modid = CreateLaborRush.MODID)
+
 public class ChatMessageHandler {
 
     private static final Random RANDOM = new Random();

@@ -12,17 +12,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(Item.class)
 public class BellItemMixin {
 
+    // ✅ 让钟可以被附魔
     @Inject(method = "isEnchantable", at = @At("HEAD"), cancellable = true)
     private void onIsEnchantable(ItemStack stack, CallbackInfoReturnable<Boolean> cir) {
         if (stack.getItem() instanceof BlockItem blockItem && blockItem.getBlock() instanceof BellBlock) {
-            cir.setReturnValue(stack.getCount() == 1);
+            cir.setReturnValue(true);
         }
     }
 
-    @Inject(method = "getEnchantmentValue", at = @At("HEAD"), cancellable = true)
-    private void onGetEnchantmentValue(ItemStack stack, CallbackInfoReturnable<Integer> cir) {
-        if (stack.getItem() instanceof BlockItem blockItem && blockItem.getBlock() instanceof BellBlock) {
-            cir.setReturnValue(15);
-        }
-    }
+    // ❌ 删掉 getEnchantmentValue 的注入，不需要
 }
