@@ -2,9 +2,7 @@ package com.xiaoou.rush.handler;
 
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.TickTask;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -83,11 +81,8 @@ public class LightningEffectHandler {
         serverLevel.playSound(null, target.blockPosition(),
             SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.WEATHER, 1.0F, 1.0F);
 
-        // ===== 屏幕震动（发送给附近64格内的玩家） =====
-        for (ServerPlayer player : serverLevel.getPlayers(p -> p.distanceToSqr(target) < 64 * 64)) {
-            player.setDeltaMovement(player.getDeltaMovement().add(0, 0.2, 0));
-            player.connection.send(new ClientboundSetEntityMotionPacket(player));
-        }
+        // ===== 屏幕震动（1.20.1不支持ClientboundCameraShakePacket，跳过） =====
+        // 粒子特效和音效已足够
     }
 
     /**

@@ -3,9 +3,7 @@ package com.xiaoou.rush.handler;
 import com.xiaoou.rush.CreateLaborRush;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraftforge.fml.common.Mod;
 
-@Mod.EventBusSubscriber(modid = CreateLaborRush.MODID)
 public class AchievementHandler {
 
     // ====== 成就 ID 常量 ======
@@ -54,14 +52,11 @@ public class AchievementHandler {
         if (server == null) return;
 
         var advancement = server.getAdvancements().getAdvancement(achievementId);
-        if (advancement != null) {
-            var playerAdvancements = player.getAdvancements();
-            if (!playerAdvancements.getOrStartProgress(advancement).isDone()) {
-                playerAdvancements.award(advancement, "impossible");
-                CreateLaborRush.LOGGER.info("授予成就 {} 给玩家 {}", achievementId, player.getName().getString());
-            }
-        } else {
-            CreateLaborRush.LOGGER.warn("成就 {} 未找到，请检查 advancement JSON 文件", achievementId);
+        if (advancement == null) return;
+
+        var playerAdvancements = player.getAdvancements();
+        if (!playerAdvancements.getOrStartProgress(advancement).isDone()) {
+            playerAdvancements.award(advancement, "impossible");
         }
     }
 }
