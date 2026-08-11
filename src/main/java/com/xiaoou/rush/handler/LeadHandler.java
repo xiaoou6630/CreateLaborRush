@@ -3,6 +3,7 @@ package com.xiaoou.rush.handler;
 import com.simibubi.create.content.contraptions.actors.seat.SeatEntity;
 import com.xiaoou.rush.CreateLaborRush;
 import com.xiaoou.rush.ModEffects;
+import com.xiaoou.rush.util.WorkerHelper;
 import com.xiaoou.rush.util.WorkerTypeDetector;
 import com.yyn.labor.util.WorkerUtil;
 import net.minecraft.core.particles.ParticleTypes;
@@ -33,12 +34,17 @@ public class LeadHandler {
     public static void onAttackEntity(AttackEntityEvent event) {
         var player = event.getEntity();
         ItemStack stack = player.getMainHandItem();
+        CreateLaborRush.LOGGER.info("[LeadHandler] AttackEntityEvent fired, hand={}, target={}",
+            stack.getItem(), event.getTarget());
         if (stack.getItem() != Items.LEAD) return;
 
         Entity target = event.getTarget();
         if (!(target instanceof LivingEntity living)) return;
-        if (!WorkerUtil.isWorkerEntity(target) && !WorkerTypeDetector.isWorker(living))
+        if (!WorkerUtil.isWorkerEntity(target) && !WorkerTypeDetector.isWorker(living)) {
+            CreateLaborRush.LOGGER.info("[LeadHandler] target {} is not a worker", target);
             return;
+        }
+        CreateLaborRush.LOGGER.info("[LeadHandler] whipping worker {}", living.getStringUUID());
 
         var level = target.level();
         if (level.isClientSide) return;
@@ -67,6 +73,17 @@ public class LeadHandler {
     }
 
     private static void applyWorkToWorker(LivingEntity living, Level level, int fireAspectLevel, int channelingLevel, Player player) {
+        // 起义叛军（不在座位上）：只触发闪电镇压，不加工（避免给叛军重新挂 Work 效果）
+        if (RebellionSystem.isRebelEntity(level, living)) {
+            if (channelingLevel > 0) {
+                LightningEffectHandler.triggerLightningEffect(level, living);
+                if (player instanceof ServerPlayer sp) {
+                    AchievementHandler.grantAchievement(sp, AchievementHandler.LIGHTNING_SUPPRESSOR);
+                }
+            }
+            return;
+        }
+
         int amplifier;
         int batchSize;
         boolean isSupercharged;
@@ -123,12 +140,9 @@ public class LeadHandler {
 
         // 成就：第一鞭 & 周扒皮
         if (player instanceof ServerPlayer sp) {
-            // 第一次抽打
             var playerData = player.getPersistentData();
-            if (!playerData.getBoolean("laborrush.hasFirstWhip")) {
-                playerData.putBoolean("laborrush.hasFirstWhip", true);
-                AchievementHandler.grantAchievement(sp, AchievementHandler.FIRST_WHIP);
-            }
+            // 第一次抽打（grantAchievement 内部幂等，已达成会自动跳过）
+            AchievementHandler.grantAchievement(sp, AchievementHandler.FIRST_WHIP);
 
             // 同一工人抽打次数
             String whipKey = "laborrush.whipCount_" + living.getStringUUID();
@@ -157,18 +171,32 @@ public class LeadHandler {
         AABB area = new AABB(player.blockPosition()).inflate(5);
         boolean foundAny = false;
         int hitCount = 0;
-        for (SeatEntity seat : level.getEntitiesOfClass(SeatEntity.class, area)) {
-            for (Entity passenger : seat.getPassengers()) {
-                if (passenger instanceof LivingEntity living && WorkerUtil.isWorkerEntity(passenger)) {
-                    foundAny = true;
-                    hitCount++;
-                    applyWorkToWorker(living, level, fireAspectLevel, channelingLevel, player);
-                    // Always spawn lightning for visual effect
-                    if (channelingLevel > 0 || serverLevel.random.nextFloat() < 0.3f) {
-                        LightningEffectHandler.triggerLightningEffect(level, living);
-                    }
-                }
+        for (LivingEntity living : WorkerHelper.collectWorkers(level, area)) {
+            foundAny = true;
+            hitCount++;
+            applyWorkToWorker(living, level, fireAspectLevel, channelingLevel, player);
+            // Always spawn lightning for visual effect
+            if (channelingLevel > 0 || serverLevel.random.nextFloat() < 0.3f) {
+                LightningEffectHandler.triggerLightningEffect(level, living);
             }
+        }
+
+        // 起义叛军（不在座位上，座位循环扫不到）：同样吃引雷五连鞭，只劈不加工
+        boolean hitRebel = false;
+        for (LivingEntity rebel : RebellionSystem.getActiveRebels(level)) {
+            if (!rebel.isAlive() || rebel.isPassenger()) continue;
+            if (rebel.distanceToSqr(player) > 5 * 5) continue;
+            foundAny = true;
+            hitCount++;
+            hitRebel = true;
+            if (channelingLevel > 0) {
+                LightningEffectHandler.triggerLightningEffect(level, rebel);
+            }
+        }
+
+        // 闪电五连鞭命中起义叛军 → 直接镇压起义（无需劈死叛军）
+        if (hitRebel && channelingLevel > 0 && level instanceof ServerLevel sl) {
+            RebellionSystem.suppressActiveRebellion(sl);
         }
 
         // 成就：闪电五连鞭 — 一次击中5+工人
@@ -189,7 +217,8 @@ public class LeadHandler {
             double xOff = (living.getRandom().nextDouble() - 0.5) * 1.2;
             double zOff = (living.getRandom().nextDouble() - 0.5) * 1.2;
             double yOff = living.getRandom().nextDouble() * 1.5 + 0.2;
-            serverLevel.sendParticles(
+            com.xiaoou.rush.util.ParticleBudget.send(
+                serverLevel,
                 particleType,
                 pos.x + xOff,
                 pos.y + yOff,

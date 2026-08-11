@@ -1,13 +1,11 @@
 {
   "display": {
     "icon": {
-      "item": "minecraft:black_banner"
+      "id": "minecraft:iron_pickaxe"
     },
-    "title": {
-      "text": "反抗军领袖"
+    "title": { "translate": "advancements.createlaborrush.demolition_squad.title"
     },
-    "description": {
-      "text": "同一工人起义3次"
+    "description": { "translate": "advancements.createlaborrush.demolition_squad.description"
     },
     "frame": "challenge",
     "show_toast": true,

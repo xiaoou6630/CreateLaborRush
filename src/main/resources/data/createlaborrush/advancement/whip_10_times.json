@@ -1,15 +1,13 @@
 {
   "display": {
     "icon": {
-      "item": "minecraft:diamond_sword"
+      "id": "minecraft:lead"
     },
-    "title": {
-      "text": "群起而攻之"
+    "title": { "translate": "advancements.createlaborrush.whip_10_times.title"
     },
-    "description": {
-      "text": "触发3人以上起义"
+    "description": { "translate": "advancements.createlaborrush.whip_10_times.description"
     },
-    "frame": "goal",
+    "frame": "task",
     "show_toast": true,
     "announce_to_chat": true,
     "hidden": false

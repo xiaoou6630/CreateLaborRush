@@ -1,13 +1,11 @@
 {
   "display": {
     "icon": {
-      "item": "minecraft:iron_pickaxe"
+      "id": "minecraft:bell"
     },
-    "title": {
-      "text": "拆迁大队"
+    "title": { "translate": "advancements.createlaborrush.peace_bell.title"
     },
-    "description": {
-      "text": "起义工人拆除5个以上设备"
+    "description": { "translate": "advancements.createlaborrush.peace_bell.description"
     },
     "frame": "challenge",
     "show_toast": true,

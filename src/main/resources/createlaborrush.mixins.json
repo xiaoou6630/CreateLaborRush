@@ -2,7 +2,7 @@
     "required": true,
     "minVersion": "0.8",
     "package": "com.xiaoou.rush.mixin",
-    "compatibilityLevel": "JAVA_17",
+    "compatibilityLevel": "JAVA_21",
     "refmap": "createlaborrush.mixins.refmap.json",
     "mixins": [
         "WorkerSeatBlockEntityMixin",

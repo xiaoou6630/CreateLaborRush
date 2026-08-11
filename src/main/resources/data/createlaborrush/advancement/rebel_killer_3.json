@@ -1,20 +1,18 @@
 {
   "display": {
     "icon": {
-      "item": "minecraft:barrier"
+      "id": "minecraft:bone"
     },
-    "title": {
-      "text": "刑部尚书"
+    "title": { "translate": "advancements.createlaborrush.rebel_killer_3.title"
     },
-    "description": {
-      "text": "完成所有成就"
+    "description": { "translate": "advancements.createlaborrush.rebel_killer_3.description"
     },
     "frame": "challenge",
     "show_toast": true,
     "announce_to_chat": true,
     "hidden": false
   },
-  "parent": "createlaborrush:root",
+  "parent": "createlaborrush:suppressor",
   "criteria": {
     "impossible": {
       "trigger": "minecraft:impossible"

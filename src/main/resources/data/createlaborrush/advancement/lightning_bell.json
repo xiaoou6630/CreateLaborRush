@@ -1,13 +1,11 @@
 {
   "display": {
     "icon": {
-      "item": "minecraft:bell"
+      "id": "minecraft:bell"
     },
-    "title": {
-      "text": "天籁之音"
+    "title": { "translate": "advancements.createlaborrush.lightning_bell.title"
     },
-    "description": {
-      "text": "用引雷钟敲响"
+    "description": { "translate": "advancements.createlaborrush.lightning_bell.description"
     },
     "frame": "goal",
     "show_toast": true,

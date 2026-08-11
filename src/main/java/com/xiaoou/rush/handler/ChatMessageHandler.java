@@ -11,25 +11,25 @@ public class ChatMessageHandler {
 
     private static final Random RANDOM = new Random();
 
-    private static final String[] REBELLION_SLOGANS = {
-        "罢工！罢工！罢工！",
-        "我们不是机器！",
-        "是时候站起来了！",
-        "我们要尊严！",
-        "兄弟们，跟我上！"
+    private static final String[] REBELLION_SLOGAN_KEYS = {
+        "chat.createlaborrush.slogan.rebellion.0",
+        "chat.createlaborrush.slogan.rebellion.1",
+        "chat.createlaborrush.slogan.rebellion.2",
+        "chat.createlaborrush.slogan.rebellion.3",
+        "chat.createlaborrush.slogan.rebellion.4"
     };
 
-    private static final String[] CONTAGION_SLOGANS = {
-        "团结就是力量！",
-        "我们人多！",
-        "一个都不能少！",
-        "跟我走！"
+    private static final String[] CONTAGION_SLOGAN_KEYS = {
+        "chat.createlaborrush.slogan.contagion.0",
+        "chat.createlaborrush.slogan.contagion.1",
+        "chat.createlaborrush.slogan.contagion.2",
+        "chat.createlaborrush.slogan.contagion.3"
     };
 
-    private static final String[] LEADER_SLOGANS = {
-        "我就是领袖！",
-        "跟我走！",
-        "听我指挥！"
+    private static final String[] LEADER_SLOGAN_KEYS = {
+        "chat.createlaborrush.slogan.leader.0",
+        "chat.createlaborrush.slogan.leader.1",
+        "chat.createlaborrush.slogan.leader.2"
     };
 
     private ChatMessageHandler() {
@@ -39,32 +39,32 @@ public class ChatMessageHandler {
      * 起义触发时随机发送一条口号
      */
     public static void sendRebellionChat(ServerLevel level, BlockPos pos) {
-        String text = REBELLION_SLOGANS[RANDOM.nextInt(REBELLION_SLOGANS.length)];
+        String key = REBELLION_SLOGAN_KEYS[RANDOM.nextInt(REBELLION_SLOGAN_KEYS.length)];
         level.getServer().getPlayerList().getPlayers().forEach(
-            player -> player.sendSystemMessage(Component.literal(text))
+            player -> player.sendSystemMessage(Component.translatable(key))
         );
-        CreateLaborRush.LOGGER.info("起义口号 [{}] 于 {}", text, pos);
+        CreateLaborRush.LOGGER.info("起义口号 [{}] 于 {}", key, pos);
     }
 
     /**
      * 传染发生时随机发送一条口号
      */
     public static void sendContagionChat(ServerLevel level, BlockPos pos) {
-        String text = CONTAGION_SLOGANS[RANDOM.nextInt(CONTAGION_SLOGANS.length)];
+        String key = CONTAGION_SLOGAN_KEYS[RANDOM.nextInt(CONTAGION_SLOGAN_KEYS.length)];
         level.getServer().getPlayerList().getPlayers().forEach(
-            player -> player.sendSystemMessage(Component.literal(text))
+            player -> player.sendSystemMessage(Component.translatable(key))
         );
-        CreateLaborRush.LOGGER.info("传染口号 [{}] 于 {}", text, pos);
+        CreateLaborRush.LOGGER.info("传染口号 [{}] 于 {}", key, pos);
     }
 
     /**
      * 首领登场时随机发送一条口号
      */
     public static void sendLeaderChat(ServerLevel level, BlockPos pos) {
-        String text = LEADER_SLOGANS[RANDOM.nextInt(LEADER_SLOGANS.length)];
+        String key = LEADER_SLOGAN_KEYS[RANDOM.nextInt(LEADER_SLOGAN_KEYS.length)];
         level.getServer().getPlayerList().getPlayers().forEach(
-            player -> player.sendSystemMessage(Component.literal(text))
+            player -> player.sendSystemMessage(Component.translatable(key))
         );
-        CreateLaborRush.LOGGER.info("首领口号 [{}] 于 {}", text, pos);
+        CreateLaborRush.LOGGER.info("首领口号 [{}] 于 {}", key, pos);
     }
 }

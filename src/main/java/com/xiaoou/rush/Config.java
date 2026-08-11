@@ -21,58 +21,57 @@ public class Config {
     public static final ModConfigSpec.IntValue REBELLION_RADIUS;
     public static final ModConfigSpec.BooleanValue REBELLION_CAN_DESTROY;
     public static final ModConfigSpec.IntValue REBELLION_DESTROY_COOLDOWN;
-    public static final ModConfigSpec.DoubleValue REBELLION_ATTACK_RATIO;
-
+    public static final ModConfigSpec.DoubleValue REBELLION_DESTROY_INTENSITY;
     static {
         var builder = new ModConfigSpec.Builder();
         builder.push("work");
 
         DESTROY_CHANCE = builder
-            .comment("Probability (0.0–1.0) that an item is destroyed during Work processing")
+            .comment("加工过程中物品被销毁的概率 (0.0–1.0)")
             .defineInRange("destroyChance", 0.15, 0.0, 1.0);
 
         DESTROY_RATIO_MIN = builder
-            .comment("When destroy triggers, minimum percentage (0.0–1.0) of the batch that will be destroyed")
+            .comment("销毁触发时，一批物品被销毁的最小比例 (0.0–1.0)")
             .defineInRange("destroyRatioMin", 0.2, 0.0, 1.0);
 
         DESTROY_RATIO_MAX = builder
-            .comment("When destroy triggers, maximum percentage (0.0–1.0) of the batch that will be destroyed")
+            .comment("销毁触发时，一批物品被销毁的最大比例 (0.0–1.0)")
             .defineInRange("destroyRatioMax", 0.5, 0.0, 1.0);
 
         builder.pop();
         builder.push("rebellion");
 
         REBELLION_ENABLED = builder
-            .comment("Enable worker rebellion system")
+            .comment("启用工人起义系统")
             .define("enableRebellion", false);
 
         REBELLION_TRIGGER_TIME = builder
-            .comment("Base time (in seconds) before rebellion can trigger")
+            .comment("起义触发基础时间（秒）")
             .defineInRange("rebellionTriggerTime", 300, 10, 3600);
 
         REBELLION_CHANCE = builder
-            .comment("Base probability of rebellion triggering per tick check")
+            .comment("每次检测起义触发的基础概率")
             .defineInRange("rebellionChance", 0.05, 0.0, 1.0);
 
         REBELLION_DURATION = builder
-            .comment("Duration of rebellion in seconds")
-            .defineInRange("rebellionDuration", 30, 5, 600);
+            .comment("起义持续时间（秒）")
+            .defineInRange("rebellionDuration", 300, 5, 600);
 
         REBELLION_RADIUS = builder
-            .comment("Radius for rebellion detection (blocks)")
+            .comment("起义检测半径（方块）")
             .defineInRange("rebellionRadius", 5, 1, 32);
 
         REBELLION_CAN_DESTROY = builder
-            .comment("Whether rebels can destroy devices")
-            .define("canDestroyDevices", false);
+            .comment("起义工人是否可以拆除设备（仅在开启起义时生效）")
+            .define("canDestroyDevices", true);
 
         REBELLION_DESTROY_COOLDOWN = builder
-            .comment("Cooldown between device destructions (seconds)")
+            .comment("拆家冷却时间（秒）")
             .defineInRange("destroyCooldown", 10, 1, 60);
 
-        REBELLION_ATTACK_RATIO = builder
-            .comment("Ratio of rebels that attack player (0.0-1.0), rest destroy devices")
-            .defineInRange("attackPlayerRatio", 0.5, 0.0, 1.0);
+        REBELLION_DESTROY_INTENSITY = builder
+            .comment("拆家强度（0.0-1.0）：越高拆得越勤，0 表示不拆")
+            .defineInRange("destroyIntensity", 0.5, 0.0, 1.0);
 
         builder.pop();
         SPEC = builder.build();

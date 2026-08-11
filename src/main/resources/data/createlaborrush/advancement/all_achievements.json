@@ -1,20 +1,18 @@
 {
   "display": {
     "icon": {
-      "item": "minecraft:bone"
+      "id": "minecraft:barrier"
     },
-    "title": {
-      "text": "灭村者"
+    "title": { "translate": "advancements.createlaborrush.all_achievements.title"
     },
-    "description": {
-      "text": "击杀3个以上起义工人"
+    "description": { "translate": "advancements.createlaborrush.all_achievements.description"
     },
     "frame": "challenge",
     "show_toast": true,
     "announce_to_chat": true,
     "hidden": false
   },
-  "parent": "createlaborrush:suppressor",
+  "parent": "createlaborrush:root",
   "criteria": {
     "impossible": {
       "trigger": "minecraft:impossible"

@@ -1,13 +1,11 @@
 {
   "display": {
     "icon": {
-      "item": "minecraft:lead"
+      "id": "minecraft:lead"
     },
-    "title": {
-      "text": "创世劳工"
+    "title": { "translate": "advancements.createlaborrush.root.title"
     },
-    "description": {
-      "text": "开始你的劳工管理之旅"
+    "description": { "translate": "advancements.createlaborrush.root.description"
     },
     "background": "minecraft:textures/block/furnace_top.png",
     "frame": "task",

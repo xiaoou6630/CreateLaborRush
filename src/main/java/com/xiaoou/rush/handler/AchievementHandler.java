@@ -49,14 +49,23 @@ public class AchievementHandler {
      */
     public static void grantAchievement(ServerPlayer player, ResourceLocation achievementId) {
         var server = player.getServer();
-        if (server == null) return;
+        if (server == null) {
+            CreateLaborRush.LOGGER.info("[Achievement] {} grant skipped: server null", achievementId);
+            return;
+        }
 
         var advancement = server.getAdvancements().get(achievementId);
-        if (advancement == null) return;
+        if (advancement == null) {
+            CreateLaborRush.LOGGER.info("[Achievement] {} NOT FOUND in registry!", achievementId);
+            return;
+        }
 
         var playerAdvancements = player.getAdvancements();
         if (!playerAdvancements.getOrStartProgress(advancement).isDone()) {
             playerAdvancements.award(advancement, "impossible");
+            CreateLaborRush.LOGGER.info("[Achievement] {} awarded to {}", achievementId, player.getName().getString());
+        } else {
+            CreateLaborRush.LOGGER.info("[Achievement] {} already done", achievementId);
         }
     }
 }

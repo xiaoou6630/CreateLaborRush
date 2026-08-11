@@ -1,13 +1,11 @@
 {
   "display": {
     "icon": {
-      "item": "minecraft:beacon"
+      "id": "minecraft:beacon"
     },
-    "title": {
-      "text": "和平大使"
+    "title": { "translate": "advancements.createlaborrush.peace_ambassador.title"
     },
-    "description": {
-      "text": "关闭起义后使用10分钟"
+    "description": { "translate": "advancements.createlaborrush.peace_ambassador.description"
     },
     "frame": "task",
     "show_toast": true,

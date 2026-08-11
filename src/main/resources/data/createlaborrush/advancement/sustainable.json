@@ -1,13 +1,11 @@
 {
   "display": {
     "icon": {
-      "item": "minecraft:leather"
+      "id": "minecraft:clock"
     },
-    "title": {
-      "text": "第一鞭"
+    "title": { "translate": "advancements.createlaborrush.sustainable.title"
     },
-    "description": {
-      "text": "第一次用拴绳抽打工人的心"
+    "description": { "translate": "advancements.createlaborrush.sustainable.description"
     },
     "frame": "task",
     "show_toast": true,

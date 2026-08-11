@@ -1,13 +1,11 @@
 {
   "display": {
     "icon": {
-      "item": "minecraft:soul_torch"
+      "id": "minecraft:soul_torch"
     },
-    "title": {
-      "text": "地狱火"
+    "title": { "translate": "advancements.createlaborrush.fire_aspect_2.title"
     },
-    "description": {
-      "text": "用火焰附加II拴绳抽打工人"
+    "description": { "translate": "advancements.createlaborrush.fire_aspect_2.description"
     },
     "frame": "goal",
     "show_toast": true,

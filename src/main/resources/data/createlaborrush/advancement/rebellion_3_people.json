@@ -1,15 +1,13 @@
 {
   "display": {
     "icon": {
-      "item": "minecraft:lead"
+      "id": "minecraft:diamond_sword"
     },
-    "title": {
-      "text": "周扒皮"
+    "title": { "translate": "advancements.createlaborrush.rebellion_3_people.title"
     },
-    "description": {
-      "text": "同一工人抽打10次"
+    "description": { "translate": "advancements.createlaborrush.rebellion_3_people.description"
     },
-    "frame": "task",
+    "frame": "goal",
     "show_toast": true,
     "announce_to_chat": true,
     "hidden": false

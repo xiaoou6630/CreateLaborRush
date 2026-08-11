@@ -1,20 +1,18 @@
 {
   "display": {
     "icon": {
-      "item": "minecraft:clock"
+      "id": "minecraft:leather"
     },
-    "title": {
-      "text": "可持续发展"
+    "title": { "translate": "advancements.createlaborrush.first_whip.title"
     },
-    "description": {
-      "text": "钟声给5个以上工人附加 Work 效果"
+    "description": { "translate": "advancements.createlaborrush.first_whip.description"
     },
     "frame": "task",
     "show_toast": true,
     "announce_to_chat": true,
     "hidden": false
   },
-  "parent": "createlaborrush:first_whip",
+  "parent": "createlaborrush:root",
   "criteria": {
     "impossible": {
       "trigger": "minecraft:impossible"

@@ -1,13 +1,11 @@
 {
   "display": {
     "icon": {
-      "item": "minecraft:bell"
+      "id": "minecraft:black_banner"
     },
-    "title": {
-      "text": "和平使者"
+    "title": { "translate": "advancements.createlaborrush.rebellion_leader_3.title"
     },
-    "description": {
-      "text": "用钟声平息起义"
+    "description": { "translate": "advancements.createlaborrush.rebellion_leader_3.description"
     },
     "frame": "challenge",
     "show_toast": true,

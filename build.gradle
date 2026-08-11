@@ -81,6 +81,16 @@ dependencies {
     implementation fileTree(dir: 'libs', include: '*.jar')
 }
 
+configurations.all {
+    resolutionStrategy {
+        force 'org.ow2.asm:asm:9.7.1',
+                'org.ow2.asm:asm-analysis:9.7.1',
+                'org.ow2.asm:asm-commons:9.7.1',
+                'org.ow2.asm:asm-tree:9.7.1',
+                'org.ow2.asm:asm-util:9.7.1'
+    }
+}
+
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
     var replaceProperties = [
             minecraft_version      : minecraft_version,
