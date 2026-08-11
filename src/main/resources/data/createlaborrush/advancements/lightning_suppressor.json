@@ -3,11 +3,9 @@
     "icon": {
       "item": "minecraft:trident"
     },
-    "title": {
-      "text": "雷电法王"
+    "title": { "translate": "advancements.createlaborrush.lightning_suppressor.title"
     },
-    "description": {
-      "text": "用引雷镇压群体起义"
+    "description": { "translate": "advancements.createlaborrush.lightning_suppressor.description"
     },
     "frame": "challenge",
     "show_toast": true,

@@ -51,6 +51,8 @@ minecraft {
 
         client {
             property 'forge.enabledGameTestNamespaces', mod_id
+            jvmArgs '-XX:+ShowCodeDetailsInExceptionMessages'
+            jvmArgs '-XX:-OmitStackTraceInFastThrow'
         }
 
         server {

@@ -3,11 +3,9 @@
     "icon": {
       "item": "minecraft:leather"
     },
-    "title": {
-      "text": "第一鞭"
+    "title": { "translate": "advancements.createlaborrush.first_whip.title"
     },
-    "description": {
-      "text": "第一次用拴绳抽打工人的心"
+    "description": { "translate": "advancements.createlaborrush.first_whip.description"
     },
     "frame": "task",
     "show_toast": true,

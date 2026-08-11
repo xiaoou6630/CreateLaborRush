@@ -3,11 +3,9 @@
     "icon": {
       "item": "minecraft:black_banner"
     },
-    "title": {
-      "text": "反抗军领袖"
+    "title": { "translate": "advancements.createlaborrush.rebellion_leader_3.title"
     },
-    "description": {
-      "text": "同一工人起义3次"
+    "description": { "translate": "advancements.createlaborrush.rebellion_leader_3.description"
     },
     "frame": "challenge",
     "show_toast": true,

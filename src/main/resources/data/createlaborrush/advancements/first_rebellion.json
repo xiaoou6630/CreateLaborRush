@@ -3,13 +3,11 @@
     "icon": {
       "item": "minecraft:iron_sword"
     },
-    "title": {
-      "text": "第一次起义"
+    "title": { "translate": "advancements.createlaborrush.first_rebellion.title"
     },
-    "description": {
-      "text": "触发工人起义！世界不再安宁"
+    "description": { "translate": "advancements.createlaborrush.first_rebellion.description"
     },
-    "frame": "challenge",
+    "frame": "task",
     "show_toast": true,
     "announce_to_chat": true,
     "hidden": true

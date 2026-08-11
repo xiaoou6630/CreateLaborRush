@@ -3,11 +3,9 @@
     "icon": {
       "item": "minecraft:trident"
     },
-    "title": {
-      "text": "天罚"
+    "title": { "translate": "advancements.createlaborrush.lightning_whip.title"
     },
-    "description": {
-      "text": "用引雷拴绳抽打工人"
+    "description": { "translate": "advancements.createlaborrush.lightning_whip.description"
     },
     "frame": "goal",
     "show_toast": true,

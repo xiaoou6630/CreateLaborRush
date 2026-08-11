@@ -3,11 +3,9 @@
     "icon": {
       "item": "minecraft:barrier"
     },
-    "title": {
-      "text": "刑部尚书"
+    "title": { "translate": "advancements.createlaborrush.all_achievements.title"
     },
-    "description": {
-      "text": "完成所有成就"
+    "description": { "translate": "advancements.createlaborrush.all_achievements.description"
     },
     "frame": "challenge",
     "show_toast": true,

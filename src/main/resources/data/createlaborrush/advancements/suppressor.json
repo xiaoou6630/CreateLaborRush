@@ -3,11 +3,9 @@
     "icon": {
       "item": "minecraft:shield"
     },
-    "title": {
-      "text": "镇压者"
+    "title": { "translate": "advancements.createlaborrush.suppressor.title"
     },
-    "description": {
-      "text": "成功镇压工人起义"
+    "description": { "translate": "advancements.createlaborrush.suppressor.description"
     },
     "frame": "goal",
     "show_toast": true,

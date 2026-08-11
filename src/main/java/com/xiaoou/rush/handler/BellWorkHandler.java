@@ -24,15 +24,22 @@ public class BellWorkHandler {
 
         if (event.getLevel().isClientSide) return;
 
-        // 如果玩家手持附魔钟，由 BellEnchantHandler 处理
+        // 如果玩家手持附魔钟/附魔呼唤铃，由 BellEnchantHandler 处理
         var stack = event.getEntity().getMainHandItem();
-        if (stack.getItem() instanceof BlockItem blockItem && blockItem.getBlock() instanceof BellBlock) {
+        boolean holdingBell = stack.getItem() instanceof BlockItem blockItem
+            && (blockItem.getBlock() instanceof BellBlock || blockItem.getBlock() instanceof DeskBellBlock);
+        if (holdingBell) {
             int fireAspect = EnchantmentHelper.getItemEnchantmentLevel(Enchantments.FIRE_ASPECT, stack);
             int channeling = EnchantmentHelper.getItemEnchantmentLevel(Enchantments.CHANNELING, stack);
             if (fireAspect > 0 || channeling > 0) {
                 return;
             }
         }
+
+        // 手持钟物品右键钟方块时，原版行为是尝试"放置"钟（无法敲钟）。
+        // 取消放置，改为"手持钟敲钟"：播放钟声并施加效果
+        // 不取消事件：原版敲钟流程照常执行（摆动动画 + 钟声自然保留），这里只叠加效果。
+        // 手持钟物品右键钟时原版是"放置失败"（钟已占位），无动画属原版行为，不影响空手敲
 
         // 普通钟声：Work I (amp 0)
         AABB area = new AABB(event.getPos()).inflate(16);

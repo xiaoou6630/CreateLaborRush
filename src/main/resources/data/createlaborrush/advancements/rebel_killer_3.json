@@ -3,11 +3,9 @@
     "icon": {
       "item": "minecraft:bone"
     },
-    "title": {
-      "text": "灭村者"
+    "title": { "translate": "advancements.createlaborrush.rebel_killer_3.title"
     },
-    "description": {
-      "text": "击杀3个以上起义工人"
+    "description": { "translate": "advancements.createlaborrush.rebel_killer_3.description"
     },
     "frame": "challenge",
     "show_toast": true,

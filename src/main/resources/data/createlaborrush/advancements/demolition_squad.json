@@ -3,11 +3,9 @@
     "icon": {
       "item": "minecraft:iron_pickaxe"
     },
-    "title": {
-      "text": "拆迁大队"
+    "title": { "translate": "advancements.createlaborrush.demolition_squad.title"
     },
-    "description": {
-      "text": "起义工人拆除5个以上设备"
+    "description": { "translate": "advancements.createlaborrush.demolition_squad.description"
     },
     "frame": "challenge",
     "show_toast": true,

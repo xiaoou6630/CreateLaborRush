@@ -3,11 +3,9 @@
     "icon": {
       "item": "minecraft:diamond_sword"
     },
-    "title": {
-      "text": "群起而攻之"
+    "title": { "translate": "advancements.createlaborrush.rebellion_3_people.title"
     },
-    "description": {
-      "text": "触发3人以上起义"
+    "description": { "translate": "advancements.createlaborrush.rebellion_3_people.description"
     },
     "frame": "goal",
     "show_toast": true,

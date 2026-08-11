@@ -3,11 +3,9 @@
     "icon": {
       "item": "minecraft:bell"
     },
-    "title": {
-      "text": "和平使者"
+    "title": { "translate": "advancements.createlaborrush.peace_bell.title"
     },
-    "description": {
-      "text": "用钟声平息起义"
+    "description": { "translate": "advancements.createlaborrush.peace_bell.description"
     },
     "frame": "challenge",
     "show_toast": true,

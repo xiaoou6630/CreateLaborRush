@@ -1,5 +1,6 @@
 package com.xiaoou.rush.handler;
 
+import com.xiaoou.rush.util.ParticleBudget;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -16,11 +17,30 @@ public class LightningEffectHandler {
     private static final Random RANDOM = new Random();
 
     /**
-     * 触发引雷特效序列（纯粒子，不生成实体闪电）
+     * 触发引雷特效序列（真实闪电 + 粒子组合）
      * 特效序列：第0/2/4/6/8 tick 分别触发不同效果
+     * 防滥用：预算不足/同一目标 1 秒内已劈过时静默跳过（防连点粒子风暴）
      */
     public static void triggerLightningEffect(Level level, LivingEntity target) {
         if (!(level instanceof ServerLevel serverLevel)) return;
+        long tick = serverLevel.getServer().getTickCount();
+
+        // 全服同 tick 序列上限（防多玩家同 tick 风暴）
+        if (!ParticleBudget.tryTrigger(tick)) return;
+        // 同一目标冷却（防连点反复劈同一目标）
+        if (!ParticleBudget.canTriggerTarget(tick, target.getUUID())) return;
+        // 真实闪电实体预算（实体堆积是主要性能杀手）
+        boolean hasBolt = ParticleBudget.tryBolt(tick);
+
+        // ===== 真实闪电劈下（纯视觉，不造成伤害） =====
+        if (hasBolt) {
+            net.minecraft.world.entity.LightningBolt bolt = net.minecraft.world.entity.EntityType.LIGHTNING_BOLT.create(serverLevel);
+            if (bolt != null) {
+                bolt.moveTo(target.getX(), target.getY(), target.getZ());
+                bolt.setVisualOnly(true);
+                serverLevel.addFreshEntity(bolt);
+            }
+        }
 
         // ===== 第0 tick：蓝色光柱 =====
         spawnBlueLightColumn(serverLevel, target);
@@ -81,6 +101,14 @@ public class LightningEffectHandler {
         serverLevel.playSound(null, target.blockPosition(),
             SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.WEATHER, 1.0F, 1.0F);
 
+        // ===== 成就：雷电法王 — 用引雷击中起义中的叛军 =====
+        if (RebellionSystem.isRebelEntity(serverLevel, target)) {
+            var nearest = serverLevel.getNearestPlayer(target, 32);
+            if (nearest instanceof net.minecraft.server.level.ServerPlayer sp) {
+                AchievementHandler.grantAchievement(sp, AchievementHandler.LIGHTNING_SUPPRESSOR);
+            }
+        }
+
         // ===== 屏幕震动（1.20.1不支持ClientboundCameraShakePacket，跳过） =====
         // 粒子特效和音效已足够
     }
@@ -93,7 +121,7 @@ public class LightningEffectHandler {
         double y = target.getY();
         double z = target.getZ();
         for (double h = 3.0; h >= 0; h -= 0.25) {
-            level.sendParticles(ParticleTypes.END_ROD,
+            ParticleBudget.send(level, ParticleTypes.END_ROD,
                 x, y + h, z,
                 1, 0.05, 0.0, 0.05, 0.01);
         }
@@ -113,7 +141,7 @@ public class LightningEffectHandler {
             double dx = r * Math.sin(phi) * Math.cos(theta);
             double dy = r * Math.cos(phi);
             double dz = r * Math.sin(phi) * Math.sin(theta);
-            level.sendParticles(ParticleTypes.ELECTRIC_SPARK,
+            ParticleBudget.send(level, ParticleTypes.ELECTRIC_SPARK,
                 x + dx, y + dy, z + dz,
                 1, 0.0, 0.0, 0.0, 0.0);
         }
@@ -135,7 +163,7 @@ public class LightningEffectHandler {
                 double angle = 2 * Math.PI * i / count;
                 double px = x + radius * Math.cos(angle);
                 double pz = z + radius * Math.sin(angle);
-                level.sendParticles(ParticleTypes.ELECTRIC_SPARK,
+                ParticleBudget.send(level, ParticleTypes.ELECTRIC_SPARK,
                     px, y, pz,
                     1, 0.0, 0.0, 0.0, 0.0);
             }
@@ -154,7 +182,7 @@ public class LightningEffectHandler {
             double dx = (RANDOM.nextDouble() - 0.5) * 1.5;
             double dz = (RANDOM.nextDouble() - 0.5) * 1.5;
             double dy = RANDOM.nextDouble() * 1.5;
-            level.sendParticles(ParticleTypes.ELECTRIC_SPARK,
+            ParticleBudget.send(level, ParticleTypes.ELECTRIC_SPARK,
                 x + dx, y + dy, z + dz,
                 1, 0.0, 0.0, 0.0, 0.0);
         }
@@ -176,10 +204,10 @@ public class LightningEffectHandler {
         for (int i = 0; i < 3; i++) {
             double dx = (RANDOM.nextDouble() - 0.5) * 2.0;
             double dz = (RANDOM.nextDouble() - 0.5) * 2.0;
-            level.sendParticles(ParticleTypes.ELECTRIC_SPARK,
+            ParticleBudget.send(level, ParticleTypes.ELECTRIC_SPARK,
                 x + dx, y, z + dz,
                 1, 0.0, 0.0, 0.0, 0.0);
-            level.sendParticles(ParticleTypes.FLAME,
+            ParticleBudget.send(level, ParticleTypes.FLAME,
                 x + dx, y, z + dz,
                 1, 0.0, 0.0, 0.0, 0.0);
         }

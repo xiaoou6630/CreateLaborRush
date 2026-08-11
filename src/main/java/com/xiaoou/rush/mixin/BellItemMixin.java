@@ -20,8 +20,10 @@ public class BellItemMixin {
     }
 
     @Inject(method = "getEnchantmentValue", at = @At("HEAD"), cancellable = true)
-    private void onGetEnchantmentValue(ItemStack stack, CallbackInfoReturnable<Integer> cir) {
-        if (stack.getItem() instanceof BlockItem blockItem && blockItem.getBlock() instanceof BellBlock) {
+    private void onGetEnchantmentValue(CallbackInfoReturnable<Integer> cir) {
+        // 1.20.1: getEnchantmentValue() 无参数，通过 (Item)(Object)this 获取 Item 实例
+        Item self = (Item)(Object)this;
+        if (self instanceof BlockItem blockItem && blockItem.getBlock() instanceof BellBlock) {
             cir.setReturnValue(15);
         }
     }
