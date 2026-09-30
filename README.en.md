@@ -4,107 +4,174 @@
 
 [简体中文](README.md) | **English** | [Русский](README.ru.md)
 
-Whip workers into overdrive with a lead, enchant leads and bells with Fire Aspect / Channeling, rally everyone by ringing a bell, push them too far and trigger a worker rebellion — and slap struggle-session tall hats, capitalist top hats and hand-written placards on your workers. 19 achievements to unlock.
+### Boost with a Lead or Bell - now with enchanted bells, worker rebellions and 19 achievements
+
+An addon for **Create: Villager Labor** that lets you motivate villagers to work at incredible speeds. Use a Lead on a single worker, or ring a Bell to boost everyone nearby.
+
+**New in v2.0.1:** in-game graphical config with server/admin sync, custom-model hats (struggle tall hat and capitalist hat), a 4x3 slogan painting, and Russian localisation.
 
 ---
 
-## How to Use
+## Version Compatibility
 
-| Action | Effect |
-|--------|--------|
-| **Lead** left-click a worker | 90s "Work!" effect |
-| **Bell** right-click | Buff all workers within 16 blocks |
-| **Shift+Left Click** | Lightning 5-Whip (5-block AOE) |
+| Your Mod Version | CVL Version | Status |
+|------------------|-------------|--------|
+| **v2.0.1** | **1.4.0 - 1.5.3** | Current |
+| v2.0.0 | 1.4.0 - 1.5.0 | Archived |
+| v1.1.0 | 1.4.0 - 1.5.0 | Archived |
+| v1.0.0 | 1.3.1 | Archived |
 
-| Lead Enchant | Level | Batch Size |
-|--------------|-------|------------|
-| Normal | Work I | Default |
-| Fire Aspect I | Work II | 32 |
-| Fire Aspect II | Work III | 64 |
-| Channeling | Work III | 64 |
+> Requires Create: Villager Labor 1.4.0 or newer. Available for **Forge 1.20.1** and **NeoForge 1.21.1**.
 
-## Highlights
+---
 
-- **Enchanted Bell**: ring with Fire Aspect or Channeling, effects persist across restarts
-- **Worker Rebellion** (disabled by default): contagion, leader system, strength buff, emerald peace negotiation
-- **Maid Uprising**: auto-equips weapons, 22 Touhou-themed dialogues
-- **19 Achievements**: from "First Whip" to "Minister of Punishment"
-- **Lightning Effect**: blue beam → burst → shockwave → arcing current
-- **Graphical Config**: edit in-game via Mods → Config; changes apply instantly
-- **Multiplayer**: server config is authoritative; only admins can change it and it syncs to everyone
-- **Struggle Tall Hat / Capitalist Hat**: custom-model helmets (3 armor / 1 toughness), maids can wear them too
-- **Placard** (currently disabled): vanilla hanging signs can go into your chest slot or onto a worker, with a 4-line writing screen
-- **Slogan Painting**: a 4×3 "Time is money, efficiency is life" painting
-- **Localisation**: Simplified Chinese / English / Russian
+## How It Works
 
-## How to Quell a Rebellion
+- **Lead (Normal)** - left-click a seated worker with a Lead to give them a "Work" effect for **90 seconds**.
+- **Lead + Fire Aspect I** - left-click with a Fire Aspect I Lead to activate **Work II**, processing **32 items per batch**.
+- **Lead + Fire Aspect II** - left-click with a Fire Aspect II Lead to activate **Work III**, processing **64 items per batch**.
+- **Lead + Channeling** - left-click a worker, then **Shift + Left-click** to unleash the **Lightning 5-Whip**: a 5-block AoE chain strike with a brand-new lightning effect (beam, burst, shockwave, arcing current).
+- **See it in action:** [Lightning 5-Whip (bilibili)](https://www.bilibili.com/video/BV1Y24y1g759/?share_source=copy_web&vd_source=a4a9ee56bb8c9d1119a8298c1a1d3b2a&t=25)
+- **Bell / Desk Bell** - right-click a Bell or Desk Bell to motivate **all seated workers** within **16 blocks** at once. Enchanted bells work too.
+- **Enchanted Bells** - enchant a Bell with **Fire Aspect** or **Channeling** on an anvil, place it, and every ring triggers the enchantment. Effects are saved to the block and **persist across world restarts**; middle-click to copy an enchanted bell instantly.
 
-| Method | Action | Note |
-|--------|--------|------|
-| Kill them | Kill all rebels | Long strike cooldown in the area |
-| Wait it out | Wait for the timer | Rebellion auto-ends (shorter cooldown) |
-| Pay ransom | Right-click the rebel leader with **emeralds** | Pay enough to end peacefully |
-| Ring a bell | Ring a bell **inside the rebellion area** | Ends peacefully; Peacemaker achievement |
-| Channeling | Channeling lead + **Shift+Left Click** (Lightning 5-Whip) hitting rebels | Stormlord achievement |
+> Tip: leads can be enchanted using an anvil and an enchanted book.
 
-> `enableRebellion` only controls whether **new** rebellions can start. An ongoing rebellion keeps running and all five methods above still work.
+---
 
-## Hats & Placards
+## What It Does
 
-| Item | Recipe | Note |
-|------|--------|------|
-| **Struggle Tall Hat** | Create Cardboard ×5 | Helmet slot, 3 armor / 1 toughness, maids can wear it too |
-| **Capitalist Hat** | Black Wool ×4 + Red Dye ×1 | Same stats, a black felt top hat |
-| **Slogan Painting** | vanilla painting flow | 4×3, reads "Time is money / Efficiency is life" |
+Workers under the "Work" effect blaze through recipes at maximum speed:
 
-> On 1.20.1 the painting needs a wall at least **4 wide and 3 tall** before it can be picked at random.
+| Phase | Normal | With Work |
+|-------|--------|-----------|
+| Processing Time | 10-20 ticks | 1 tick |
+| Cooldown (between items) | 20 ticks | 1 tick |
 
-The placard is just a **vanilla hanging sign** — no new item. The text lives on the sign, so it survives being placed as a block.
+### Batch Processing
 
-> **The placard is currently disabled** (its text rendering still has unsolved issues). The table below describes the intended design; right now hanging signs behave exactly like vanilla.
+| Trigger | Mode | Batch Size |
+|---------|------|------------|
+| Bell / Normal Lead | Work I | Seat material default (1/2/4) |
+| Fire Aspect I Lead | Work II | 32 |
+| Fire Aspect II Lead | Work III | 64 |
 
-| Action | Effect |
-|--------|--------|
-| Hanging sign + **right-click air** | Open the writing screen (4 lines) |
-| Hanging sign + **sneak + right-click air** | Swap it into your chest slot (old chest item goes to your hand) |
-| Hanging sign + **right-click a worker** | Hang it on the worker (consumes one sign) |
-| **Sneak + empty hand + right-click a worker** | Take the placard back |
+> Total cycle time drops from roughly 1-2 seconds to just **2 ticks (0.1s)** - ideal for high-throughput production lines.
 
-## Config
+---
 
-Edit it in-game via **Mods → Create: Labor Rush → Config** (applies instantly, no restart needed), or directly in `config/createlaborrush-common.toml`.
+## Worker Rebellion (new in v2.0)
 
-| Key | Default | Range | Description |
-|-----|---------|-------|-------------|
-| `destroyChance` | 0.15 | 0.0–1.0 | Item destruction chance |
-| `destroyRatioMin` | 0.2 | 0.0–1.0 | Min batch loss ratio |
-| `destroyRatioMax` | 0.5 | 0.0–1.0 | Max batch loss ratio |
-| `enableRebellion` | false | bool | Enable rebellion (only gates *new* rebellions) |
-| `rebellionTriggerTime` | 300 | 10–3600 | Seconds of accumulated work before a rebellion can start |
-| `rebellionChance` | 0.05 | 0.0–1.0 | Base chance per 10-second check |
-| `rebellionDuration` | 300 | 5–600 | Duration (seconds) |
-| `rebellionRadius` | 5 | 1–32 | Detection radius (blocks) |
-| `canDestroyDevices` | true | bool | Rebels destroy devices |
-| `destroyCooldown` | 10 | 1–60 | Cooldown between demolitions, per rebel (seconds) |
-| `destroyIntensity` | 0.5 | 0.0–1.0 | Destruction intensity |
+Push your workers too hard and they might just snap. This optional system is **disabled by default** - enable it in the config if you want chaos.
 
-On multiplayer the server's config is authoritative: only admins (OP, or the singleplayer/LAN host) can change it, and their changes are synced to everyone else. Rejected changes are reported in chat. Server values are never written into a client's local config file.
+- **Contagion** - one angry worker can spread the rebellion to the whole workshop
+- **Rebel leader** - rebellions have a leader (tracked with a boss bar), and rebels buff up while rebelling
+- **Property damage** - rebels smash nearby machines (configurable)
+- **Emerald negotiation** - right-click the leader and pay up to end the strike peacefully
+- **Maid Uprising** - Touhou Little Maid maids auto-equip weapons and shout 22 Touhou-themed battle cries (gracefully skipped if the maid mod is not installed)
 
-## Compatibility
+### How to Quell a Rebellion
 
-| Dependency | Version |
-|-----------|---------|
-| MC | 1.20.1 (Forge) / 1.21.1 (NeoForge) |
-| Create | 6.0.0 – 6.1.0 |
-| CVL | **1.4.0 – 2.0.0** (exclusive) |
-| Touhou Little Maid (optional) | 1.5.x — maid hats / maid uprising need it |
+| Method | How | Note |
+|--------|-----|------|
+| Kill them | Kill every rebel | Workers go on strike afterwards |
+| Wait it out | Let the timer run out | Rebellion ends on its own |
+| Pay ransom | Right-click the leader with emeralds | Ends it peacefully |
+| Ring a bell | Ring any (enchanted) bell inside the area | Unlocks the Peacemaker achievement |
+| Channeling | Strike the rebels with a Channeling lead | Unlocks the Stormlord achievement |
+
+> `enableRebellion` only controls whether new rebellions can start. An ongoing rebellion keeps running.
+
+---
+
+## Balancing - Haste Makes Waste
+
+Working at breakneck speed has its risks: items processed under "Work" have a **configurable chance** of being destroyed on completion.
+
+When destruction triggers, **only a portion of the batch is lost** (default 20%-50%), not the entire batch.
+
+| Setting | Default | Effect |
+|---------|---------|--------|
+| `destroyChance` | `0.15` | Chance of destruction (0.0-1.0) |
+| `destroyRatioMin` | `0.2` | Minimum lost when destroyed (0.0-1.0) |
+| `destroyRatioMax` | `0.5` | Maximum lost when destroyed (0.0-1.0) |
+| `enableRebellion` | `false` | Toggle the rebellion system (new rebellions only) |
+| `rebellionTriggerTime` | `300` | Seconds of accumulated work before a rebellion can start |
+| `rebellionDuration` | `300` | Rebellion duration (seconds) |
+| `canDestroyDevices` | `true` | Let rebels smash machines |
+| `destroyCooldown` | `10` | Cooldown between demolitions, per rebel (seconds) |
+| `destroyIntensity` | `0.5` | Destruction intensity (0.0-1.0) |
+
+**Example:** processing 64 items with Work III gives a 15% chance to trigger; if triggered, 13-32 items are lost (random roll) and the rest are produced normally.
+
+Config is editable in-game via **Mods -> Create: Labor Rush -> Config** (applies instantly), or directly in `config/createlaborrush-common.toml`.
+
+On multiplayer the server's config is authoritative: only admins (OP, or the singleplayer/LAN host) can change it, and their changes are synced to everyone else. Server values are never written into a client's local config file.
+
+---
+
+## Features
+
+- Works with **all worker stations**: Saw, Press, Mixer, Millstone, Deployer
+- **Enchanted Bells** with Fire Aspect / Channeling, persisted across restarts
+- **Worker Rebellion** with contagion, leaders, negotiation and 5 ways to quell it
+- **19 achievements** - from "First Whip" to "Minister of Punishment"
+- **Brand-new lightning effects** for Channeling strikes
+- **Custom-model hats**: struggle tall hat and capitalist hat (helmet slot, 3 armor / 1 toughness, maids can wear them too)
+- **Slogan painting**: a 4x3 "Time is money, efficiency is life" canvas
+- Compatible with **Touhou Little Maid** (maids can be motivated and revolt)
+- Compatible with **Millenaire** villagers (reflection, optional)
+- **Fire Aspect** supercharge - 32/64 items per batch
+- **Workers protected from fire damage** - they will not burn
+- Fully configurable item loss chance and loss ratio
+- Zero coremod changes - pure Mixin addon
+
+---
 
 ## Requirements
 
-- NeoForge 21.1.234+
-- Create 6.0+
-- Create: Villager Labor 1.4+
+| Dependency | Version |
+|------------|---------|
+| **Forge** | 47.4.22+ |
+| **NeoForge** | 21.1.234+ |
+| **Minecraft** | 1.20.1 / 1.21.1 |
+| **Create** | 6.0.10 - 6.1.0 |
+| **Create: Villager Labor** | 1.4.0 - 1.5.3 |
+| Touhou Little Maid (optional) | 1.5.x |
 
 ---
 
-*An independent addon for Create: Villager Labor.*
+## Notes
+
+- The "Work" effect has a custom status icon (red)
+- Fire Aspect leads produce flame / soul flame particles on workers (visual only, no damage)
+- Use the Bell to motivate your entire workshop at once
+- Effect duration: **90 seconds (1800 ticks)**
+- Rebellion is **off by default** - flip `enableRebellion` in the config to try it
+
+---
+
+## Changelog
+
+### v2.0.1
+- In-game graphical config, with admin-only changes synced from the server
+- New items: struggle tall hat, capitalist hat (custom models, maids can wear them) and a 4x3 slogan painting
+- Russian localisation (zh_cn / en_us / ru_ru)
+- Fixed the rebellion boss bar jumping when the duration setting was changed mid-rebellion
+- Placard (hanging-sign-on-body) feature is disabled in this build
+
+### v2.0.0
+- Enchanted Bells (Fire Aspect / Channeling), saved to the block and persisted across restarts
+- Worker Rebellion system (opt-in), Maid Uprising, 19 achievements
+- Overhauled lightning effects, Desk Bell support, numerous fixes
+
+### v1.1.0
+- Fire Aspect I / II leads (32 / 64 items per batch), Channeling Lightning 5-Whip
+- Workers protected from fire damage, configurable partial batch destruction
+
+### v1.0.0
+- Initial release
+
+---
+
+*This mod is an independent addon and is not affiliated with Create: Villager Labor or the Create mod team.*
