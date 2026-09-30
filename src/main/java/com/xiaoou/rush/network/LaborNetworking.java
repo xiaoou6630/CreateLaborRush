@@ -32,6 +32,17 @@ public class LaborNetworking {
     public static void register() {
         CHANNEL.registerMessage(0, BellSyncPacket.class,
             BellSyncPacket::encode, BellSyncPacket::decode, BellSyncPacket::handle);
+        CHANNEL.registerMessage(1, ConfigSyncPacket.class,
+            ConfigSyncPacket::encode, ConfigSyncPacket::decode, ConfigSyncPacket::handle);
+        CHANNEL.registerMessage(2, SignTextPacket.class,
+            SignTextPacket::encode, SignTextPacket::decode, SignTextPacket::handle);
+        CHANNEL.registerMessage(3, SignBoardSyncPacket.class,
+            SignBoardSyncPacket::encode, SignBoardSyncPacket::decode, SignBoardSyncPacket::handle);
+    }
+
+    /** 把一份配置值发给某个客户端 */
+    public static void sendConfigTo(ServerPlayer player, ConfigSyncPacket packet) {
+        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), packet);
     }
 
     public static void broadcastFullSync(ServerLevel level) {

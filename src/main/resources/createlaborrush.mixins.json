@@ -6,8 +6,7 @@
   "refmap": "createlaborrush.refmap.json",
   "mixins": [
     "WorkerSeatBlockEntityMixin",
-    "LeadItemMixin",
-    "BellItemMixin"
+    "ItemEnchantabilityMixin"
   ],
   "client": [],
   "server": []

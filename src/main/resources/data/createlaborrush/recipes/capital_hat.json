@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "B": {
+      "item": "minecraft:black_wool"
+    },
+    "D": {
+      "item": "minecraft:red_dye"
+    }
+  },
+  "pattern": [
+    " B ",
+    "BDB",
+    " B "
+  ],
+  "result": {
+    "item": "createlaborrush:capital_hat",
+    "count": 1
+  }
+}

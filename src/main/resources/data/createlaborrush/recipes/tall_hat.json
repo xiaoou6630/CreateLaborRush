@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "C": {
+      "item": "create:cardboard"
+    }
+  },
+  "pattern": [
+    " C ",
+    "CCC",
+    " C "
+  ],
+  "result": {
+    "item": "createlaborrush:tall_hat",
+    "count": 1
+  }
+}

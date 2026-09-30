@@ -14,8 +14,8 @@
     "hidden": false
   },
   "criteria": {
-    "impossible": {
-      "trigger": "minecraft:impossible"
+    "tick": {
+      "trigger": "minecraft:tick"
     }
   }
 }

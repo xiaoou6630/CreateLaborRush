@@ -22,6 +22,12 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+/**
+ * 注入 CVL 的工位方块实体，实现加工加速与批量覆写。
+ *
+ * <p>这里的注入一律<b>不设 {@code require}</b>：{@code require = 1} 会让 CVL 一旦改动这些方法
+ * 就直接抛 MixinApplyError、导致玩家开不了游戏；不设则退化为日志警告 + 功能失效，好定位得多。
+ */
 @Mixin(WorkerSeatBlockEntity.class)
 public abstract class WorkerSeatBlockEntityMixin {
 
@@ -49,7 +55,7 @@ public abstract class WorkerSeatBlockEntityMixin {
     }
 
     // ===== 加工加速 =====
-    @Inject(method = "processWork", at = @At("HEAD"), remap = false, require = 1)
+    @Inject(method = "processWork", at = @At("HEAD"), remap = false)
     private void laborrush$beforeProcessWork(CallbackInfo ci) {
         if (this.processingTimer <= 0 && this.outputCooldown <= 0) return;
         LivingEntity worker = laborrush$findWorker();
@@ -66,8 +72,7 @@ public abstract class WorkerSeatBlockEntityMixin {
             value = "INVOKE",
             target = "Lcom/yyn/labor/blocks/SeatMaterial;getBatchSize()I"
         ),
-        remap = false,
-        require = 1
+        remap = false
     )
     private int laborrush$overrideBatchSize(SeatMaterial material) {
         if (material == SeatMaterial.CREATIVE) {
@@ -98,8 +103,7 @@ public abstract class WorkerSeatBlockEntityMixin {
             value = "INVOKE",
             target = "Lcom/yyn/labor/blocks/SeatMaterial;getBatchSize()I"
         ),
-        remap = false,
-        require = 1
+        remap = false
     )
     private int laborrush$overrideBatchSizeDepot(SeatMaterial material) {
         return laborrush$overrideBatchSize(material);
@@ -112,8 +116,7 @@ public abstract class WorkerSeatBlockEntityMixin {
             value = "INVOKE",
             target = "Lcom/yyn/labor/blocks/SeatMaterial;getBatchSize()I"
         ),
-        remap = false,
-        require = 1
+        remap = false
     )
     private int laborrush$overrideBatchSizeBasin(SeatMaterial material) {
         return laborrush$overrideBatchSize(material);
@@ -126,8 +129,7 @@ public abstract class WorkerSeatBlockEntityMixin {
             value = "INVOKE",
             target = "Lcom/yyn/labor/blocks/WorkerSeatBlockEntity;finishProcessing()V"
         ),
-        remap = false,
-        require = 1
+        remap = false
     )
     private void laborrush$redirectFinishProcessing(WorkerSeatBlockEntity self) {
         LivingEntity worker = laborrush$findWorker();

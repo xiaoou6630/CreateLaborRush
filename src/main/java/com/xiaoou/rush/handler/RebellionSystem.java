@@ -67,7 +67,8 @@ public class RebellionSystem {
     @SubscribeEvent
     public static void onEntityInteract(PlayerInteractEvent.EntityInteract event) {
         if (event.getLevel().isClientSide) return;
-        if (!Config.REBELLION_ENABLED.get()) return;
+        // 这里不判断 REBELLION_ENABLED：开关只控制"是否触发新起义"，
+        // 进行中的起义用绿宝石谈判结束也应该照常可用（下面还有 data.active 检查）
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
 
         var level = event.getLevel();
@@ -115,6 +116,9 @@ public class RebellionSystem {
         LivingEntity leader;
         ServerBossEvent bossEvent;
         int remainingTicks;
+        // 起义总时长（tick），开始时定格。BOSS 条进度必须用它做分母，
+        // 否则中途改 rebellionDuration 会让进度条跳变
+        int totalTicks;
         int contagionTimer;
         int amplifier = -1;
         BlockPos origin;
@@ -129,6 +133,8 @@ public class RebellionSystem {
         final Map<UUID, BlockPos> demolitionTargets = new HashMap<>();
         // 拆家进度（0.0~1.0）：按方块硬度累积（空手挖掘速度），到 1.0 才破坏
         final Map<UUID, Float> demolitionProgress = new HashMap<>();
+        // 每个叛军下一次允许拆家的时间点（tickCount 基准），实现 destroyCooldown 冷却
+        final Map<UUID, Integer> nextDemolitionTicks = new HashMap<>();
         // 记录每个工人UUID的起义次数，用于"反抗军领袖"成就
         final Map<UUID, Integer> workerRebellionCount = new HashMap<>();
 
@@ -156,6 +162,8 @@ public class RebellionSystem {
 
     private static final int REBELLION_CHECK_INTERVAL_TICKS = 200; // 每10秒自动判定一次
     private static final Map<ResourceKey<Level>, Integer> CHECK_TIMERS = new HashMap<>();
+    // 起义触发基础时间累积（单位 tick）：只在工人实际干活时累加
+    private static final Map<ResourceKey<Level>, Integer> PRESSURE_TICKS = new HashMap<>();
 
     /**
      * 周期性自动判定：工作中（有 WORK_EFFECT）的工人，每隔一段时间按等级概率起义
@@ -184,6 +192,11 @@ public class RebellionSystem {
         if (workingWorkers.isEmpty()) return;
         if (center == null) return;
 
+        // 起义触发基础时间：有工人干活才累积，累积满 rebellionTriggerTime 秒后才开始掷概率
+        int pressure = PRESSURE_TICKS.getOrDefault(dimensionKey, 0) + REBELLION_CHECK_INTERVAL_TICKS;
+        PRESSURE_TICKS.put(dimensionKey, pressure);
+        if (pressure < Config.REBELLION_TRIGGER_TIME.get() * 20) return;
+
         if (isInStrikeZone(level, center)) return;
 
         // 等级越高概率越高：0级=1x，1级=2x，2级=3x
@@ -204,6 +217,7 @@ public class RebellionSystem {
         if (!(level instanceof ServerLevel serverLevel)) return;
 
         ResourceKey<Level> dimensionKey = level.dimension();
+        PRESSURE_TICKS.put(dimensionKey, 0); // 起义开始，重置触发基础时间累积
         BlockPos center = new BlockPos(
             (int) area.getCenter().x,
             (int) area.getCenter().y,
@@ -222,6 +236,7 @@ public class RebellionSystem {
         data.active = true;
         data.amplifier = amplifier;
         data.remainingTicks = Config.REBELLION_DURATION.get() * 20;
+        data.totalTicks = data.remainingTicks;
         data.contagionTimer = 0;
         data.initialRebelCount = rebelCount;
         data.rebels.addAll(selectedRebels);
@@ -387,27 +402,30 @@ public class RebellionSystem {
     @SubscribeEvent
     public static void onServerTick(TickEvent.ServerTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
-        if (!Config.REBELLION_ENABLED.get()) return;
 
         var server = event.getServer();
         if (server == null) return;
 
-        // 自动起义判定：每 10 秒检查一次各维度
-        for (ServerLevel level : server.getAllLevels()) {
-            ResourceKey<Level> dim = level.dimension();
-            int timer = CHECK_TIMERS.getOrDefault(dim, 0) + 1;
-            if (timer < REBELLION_CHECK_INTERVAL_TICKS) {
-                CHECK_TIMERS.put(dim, timer);
-                continue;
-            }
-            CHECK_TIMERS.put(dim, 0);
+        // 自动起义判定：每 10 秒检查一次各维度。关闭起义系统后只是不再触发新的起义
+        if (Config.REBELLION_ENABLED.get()) {
+            for (ServerLevel level : server.getAllLevels()) {
+                ResourceKey<Level> dim = level.dimension();
+                int timer = CHECK_TIMERS.getOrDefault(dim, 0) + 1;
+                if (timer < REBELLION_CHECK_INTERVAL_TICKS) {
+                    CHECK_TIMERS.put(dim, timer);
+                    continue;
+                }
+                CHECK_TIMERS.put(dim, 0);
 
-            var existing = REBELLIONS.get(dim);
-            if (existing == null || !existing.active) {
-                tryStartRebellion(level);
+                var existing = REBELLIONS.get(dim);
+                if (existing == null || !existing.active) {
+                    tryStartRebellion(level);
+                }
             }
         }
 
+        // 下面两部分始终推进。开关只控制"是否触发新起义"，不能把已经打起来的起义
+        // 冻结在半路——否则 boss 条不会消失、叛军不会坐回座位、罢工区冷却也不再衰减
         for (var entry : new HashMap<>(REBELLIONS).entrySet()) {
             var dimensionKey = entry.getKey();
             var data = entry.getValue();
@@ -429,6 +447,31 @@ public class RebellionSystem {
             if (zones.isEmpty()) {
                 STRIKE_ZONES.remove(dimensionKey);
             }
+        }
+    }
+
+    private static final String PEACE_AMBASSADOR_KEY = "laborrush.peaceAmbassadorTicks";
+    /** 起义系统关闭时，累计在线满 10 分钟授予"和平大使" */
+    private static final int PEACE_AMBASSADOR_TICKS = 10 * 60 * 20;
+
+    /**
+     * 成就：和平大使 — 关闭起义系统后累计在线 10 分钟。
+     * 计数存进玩家 persistentData，跨死亡/重登保留。
+     */
+    @SubscribeEvent
+    public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
+        if (event.phase != TickEvent.Phase.END) return;
+        if (Config.REBELLION_ENABLED.get()) return;
+        if (!(event.player instanceof ServerPlayer player)) return;
+
+        var data = player.getPersistentData();
+        int ticks = data.getInt(PEACE_AMBASSADOR_KEY);
+        if (ticks >= PEACE_AMBASSADOR_TICKS) return;
+
+        ticks++;
+        data.putInt(PEACE_AMBASSADOR_KEY, ticks);
+        if (ticks >= PEACE_AMBASSADOR_TICKS) {
+            AchievementHandler.grantAchievement(player, AchievementHandler.PEACE_AMBASSADOR);
         }
     }
 
@@ -454,7 +497,7 @@ public class RebellionSystem {
         }
 
         if (data.bossEvent != null) {
-            float progress = (float) data.remainingTicks / (Config.REBELLION_DURATION.get() * 20);
+            float progress = (float) data.remainingTicks / data.totalTicks;
             data.bossEvent.setProgress(progress);
         }
 
@@ -603,6 +646,8 @@ public class RebellionSystem {
                                         int maxSearchRadius, boolean walkToTarget) {
         BlockPos rebelPos = rebel.blockPosition();
         UUID rebelId = rebel.getUUID();
+        // 拆家冷却：该叛军上一次拆完设备后要等 destroyCooldown 秒才能拆下一台
+        if (rebel.tickCount < data.nextDemolitionTicks.getOrDefault(rebelId, 0)) return;
         BlockPos target = data.demolitionTargets.get(rebelId);
 
         // 无目标 / 目标已被拆 / 目标太远 → 重新找一个（换目标时重置挖掘进度）
@@ -653,6 +698,7 @@ public class RebellionSystem {
             );
             data.demolitionTargets.remove(rebelId);
             data.demolitionProgress.remove(rebelId);
+            data.nextDemolitionTicks.put(rebelId, rebel.tickCount + Config.REBELLION_DESTROY_COOLDOWN.get() * 20);
         }
     }
 
@@ -858,7 +904,7 @@ public class RebellionSystem {
 
     @SubscribeEvent
     public static void onLivingDeath(LivingDeathEvent event) {
-        if (!Config.REBELLION_ENABLED.get()) return;
+        // 同样不判断 REBELLION_ENABLED：关掉开关后击杀进行中的叛军仍应给成就与粒子
         if (event.getEntity().level().isClientSide) return;
 
         var entity = event.getEntity();
@@ -928,6 +974,19 @@ public class RebellionSystem {
         var data = REBELLIONS.get(level.dimension());
         if (data == null || !data.active) return false;
         endRebellion(level, data, true, false);
+        return true;
+    }
+
+    /**
+     * 用钟声和平平息当前维度的起义（敲钟时调用）。走的是和绿宝石谈判同一条"和平结束"路径，
+     * 不会播报"你杀死了所有起义者"，也不会给该区域套上镇压的长冷却。
+     *
+     * @return 是否成功平息了起义
+     */
+    public static boolean pacifyActiveRebellion(ServerLevel level) {
+        var data = REBELLIONS.get(level.dimension());
+        if (data == null || !data.active) return false;
+        endRebellion(level, data, false, true);
         return true;
     }
 }

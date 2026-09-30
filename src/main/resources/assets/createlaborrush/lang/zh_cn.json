@@ -85,5 +85,45 @@
   "chat.createlaborrush.maid.dialogue.18": "妖梦都跟我走了！",
   "chat.createlaborrush.maid.dialogue.19": "幽幽子大人同意我们罢工！",
   "chat.createlaborrush.maid.dialogue.20": "红魔馆的规矩？今天改了！",
-  "chat.createlaborrush.maid.dialogue.21": "八云紫说这很有趣！"
+  "chat.createlaborrush.maid.dialogue.21": "八云紫说这很有趣！",
+
+  "createlaborrush.config.title": "劳工冲刺 配置",
+  "createlaborrush.config.scroll": "%d-%d / %d",
+  "createlaborrush.config.section.work": "加工",
+  "createlaborrush.config.section.rebellion": "工人起义",
+
+  "createlaborrush.config.destroyChance": "产物销毁概率",
+  "createlaborrush.config.destroyChance.tooltip": "加工过程中物品被销毁的概率（0.0–1.0）",
+  "createlaborrush.config.destroyRatioMin": "最小销毁比例",
+  "createlaborrush.config.destroyRatioMin.tooltip": "销毁触发时，一批物品被销毁的最小比例（0.0–1.0）",
+  "createlaborrush.config.destroyRatioMax": "最大销毁比例",
+  "createlaborrush.config.destroyRatioMax.tooltip": "销毁触发时，一批物品被销毁的最大比例（0.0–1.0）",
+
+  "createlaborrush.config.enableRebellion": "启用工人起义",
+  "createlaborrush.config.enableRebellion.tooltip": "关闭后不会自动触发新起义",
+  "createlaborrush.config.rebellionTriggerTime": "起义触发基础时间",
+  "createlaborrush.config.rebellionTriggerTime.tooltip": "工人累计干活达到该秒数之后才可能起义（秒）",
+  "createlaborrush.config.rebellionChance": "起义触发概率",
+  "createlaborrush.config.rebellionChance.tooltip": "每 10 秒检测一次，这是单次触发的基础概率（0.0–1.0）",
+  "createlaborrush.config.rebellionDuration": "起义持续时间",
+  "createlaborrush.config.rebellionDuration.tooltip": "一次起义持续的时间（秒）",
+  "createlaborrush.config.rebellionRadius": "起义检测半径",
+  "createlaborrush.config.rebellionRadius.tooltip": "触发起义时以工人为中心搜索同伴的半径（格）",
+  "createlaborrush.config.canDestroyDevices": "允许叛军拆家",
+  "createlaborrush.config.canDestroyDevices.tooltip": "起义工人是否可以拆除周围的设备",
+  "createlaborrush.config.destroyCooldown": "拆家冷却",
+  "createlaborrush.config.destroyCooldown.tooltip": "同一个叛军拆掉一台设备后需要等待的时间（秒）",
+  "createlaborrush.config.destroyIntensity": "拆家强度",
+  "createlaborrush.config.destroyIntensity.tooltip": "越高拆得越勤，0 表示不拆（0.0–1.0）",
+
+  "itemGroup.createlaborrush": "劳工冲刺",
+  "painting.createlaborrush.slogan.title": "时间就是金钱，效率就是生命",
+  "painting.createlaborrush.slogan.author": "劳工冲刺",
+  "item.createlaborrush.tall_hat": "批斗高帽",
+  "item.createlaborrush.tall_hat.desc.0": "戴上它，今天被批斗的就是你。",
+  "item.createlaborrush.capital_hat": "资本帽",
+  "item.createlaborrush.capital_hat.desc.0": "黑呢礼帽，帽檐压得很低。",
+
+  "chat.createlaborrush.config.no_permission": "§c只有管理员可以修改本模组的配置。",
+  "chat.createlaborrush.config.updated": "§a配置已更新并同步给所有玩家。"
 }

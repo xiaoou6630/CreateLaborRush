@@ -1,119 +1,42 @@
 package com.xiaoou.rush.handler;
 
 import com.xiaoou.rush.CreateLaborRush;
+import com.xiaoou.rush.compat.MaidCompat;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.*;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.items.IItemHandler;
 
-import java.util.Optional;
+import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.Map;
 
 /**
- * 女仆武装起义系统 - 通过反射支持 Touhou Little Maid 模组的女仆起义功能
- * 所有反射代码包在 try-catch 中，失败时静默降级，不影响其他工人起义
+ * 女仆武装起义系统 - 通过 {@link MaidCompat} 直接调用 Touhou Little Maid 的 API（替代反射）。
+ * <p>
+ * 本文件不引用任何 TLM 类型；未安装 TLM 时由 MaidCompat 静默降级，不影响其他工人起义。
  */
 public class MaidRebellionHandler {
 
-    private static final String MAID_CLASS_NAME = "com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid";
-    private static Class<?> maidClass;
-
-    // 女仆枪械检测工具（TACZ/SWarfare 软依赖，未安装时 isGun 返回 false）
-    private static final String GUN_UTIL_CLASS_NAME = "com.github.tartaricacid.touhoulittlemaid.compat.gun.common.GunCommonUtil";
-    private static Class<?> gunUtilClass;
-
-    // 女仆任务管理（用于把女仆切换到攻击任务，激活其攻击 AI）
-    private static final String TASK_MANAGER_CLASS_NAME = "com.github.tartaricacid.touhoulittlemaid.entity.task.TaskManager";
-    private static final String TASK_INTERFACE_CLASS_NAME = "com.github.tartaricacid.touhoulittlemaid.api.task.IMaidTask";
-    private static Class<?> taskManagerClass;
-    private static Class<?> taskInterfaceClass;
-
-    // 女仆气泡（1.2.1 jar 实际 API：EntityMaid.addChatBubble(long, ChatText)，时间戳必须用 ChatBubbleManger.getEndTime()）
-    private static final String CHAT_TEXT_CLASS_NAME = "com.github.tartaricacid.touhoulittlemaid.entity.chatbubble.ChatText";
-    private static final String CHAT_TEXT_TYPE_CLASS_NAME = "com.github.tartaricacid.touhoulittlemaid.entity.chatbubble.ChatTextType";
-    private static final String CHAT_BUBBLE_MANGER_CLASS_NAME = "com.github.tartaricacid.touhoulittlemaid.entity.chatbubble.ChatBubbleManger";
-    private static Class<?> chatTextClass;
-    private static Class<?> chatTextTypeClass;
-    private static Class<?> chatBubbleMangerClass;
-
-    // 脑记忆操作缓存（起义期间每 tick 强制目标用，避免每 tick 反射查找开销）
-    private static java.lang.reflect.Method getBrainMethod;
-    private static java.lang.reflect.Method setMemoryMethod;
-    private static java.lang.reflect.Method eraseMemoryMethod;
-    private static Object attackTargetMemoryType;
-
     private static final Random RANDOM = new Random();
-
-    // 记录起义开始时女仆的原任务（UUID -> IMaidTask），结束后恢复
-    private static final Map<UUID, Object> ORIGINAL_TASKS = new ConcurrentHashMap<>();
 
     private static final int DIALOGUES_COUNT = 22;
 
-    static {
-        try {
-            maidClass = Class.forName(MAID_CLASS_NAME);
-            CreateLaborRush.LOGGER.info("MaidRebellionHandler: 检测到女仆模组 (Touhou Little Maid)");
-        } catch (ClassNotFoundException e) {
-            CreateLaborRush.LOGGER.debug("MaidRebellionHandler: 未检测到女仆模组，女仆起义功能已降级");
-            maidClass = null;
-        }
-
-        try {
-            gunUtilClass = Class.forName(GUN_UTIL_CLASS_NAME);
-        } catch (ClassNotFoundException e) {
-            gunUtilClass = null;
-        }
-
-        try {
-            taskManagerClass = Class.forName(TASK_MANAGER_CLASS_NAME);
-            taskInterfaceClass = Class.forName(TASK_INTERFACE_CLASS_NAME);
-        } catch (ClassNotFoundException e) {
-            taskManagerClass = null;
-            taskInterfaceClass = null;
-        }
-
-        try {
-            chatTextClass = Class.forName(CHAT_TEXT_CLASS_NAME);
-            chatTextTypeClass = Class.forName(CHAT_TEXT_TYPE_CLASS_NAME);
-            chatBubbleMangerClass = Class.forName(CHAT_BUBBLE_MANGER_CLASS_NAME);
-        } catch (ClassNotFoundException e) {
-            chatTextClass = null;
-            chatTextTypeClass = null;
-            chatBubbleMangerClass = null;
-        }
-
-        if (maidClass != null) {
-            try {
-                getBrainMethod = maidClass.getMethod("getBrain");
-                Class<?> memClass = Class.forName("net.minecraft.world.entity.ai.memory.MemoryModuleType");
-                attackTargetMemoryType = memClass.getField("ATTACK_TARGET").get(null);
-                Class<?> brainClass = getBrainMethod.getReturnType();
-                setMemoryMethod = brainClass.getMethod("setMemory", memClass, Object.class);
-                eraseMemoryMethod = brainClass.getMethod("eraseMemory", memClass);
-            } catch (Exception e) {
-                CreateLaborRush.LOGGER.debug("MaidRebellionHandler: 缓存脑记忆反射方法失败，目标强制功能降级", e);
-                getBrainMethod = null;
-                setMemoryMethod = null;
-                eraseMemoryMethod = null;
-                attackTargetMemoryType = null;
-            }
-        }
-    }
+    // 记录起义开始时女仆的原任务（UUID -> IMaidTask，用 Object 保存以避免暴露 TLM 类型），结束后恢复
+    private static final Map<UUID, Object> ORIGINAL_TASKS = new ConcurrentHashMap<>();
 
     /**
-     * 用反射检查实体是否为女仆
+     * 检查实体是否为女仆（直接 API，未装 TLM 时恒为 false）
      */
     public static boolean isMaid(LivingEntity entity) {
-        if (maidClass == null) return false;
-        return maidClass.isInstance(entity);
+        return MaidCompat.isMaid(entity);
     }
 
     /**
@@ -122,16 +45,16 @@ public class MaidRebellionHandler {
      * 流程：
      * 1. 搜索女仆背包，按优先级选择武器（枪械 > 剑/斧 > 弓/弩/三叉戟 > 空手）
      * 2. 装备武器到主手（女仆 AI 会根据主手武器自动切换近战/远程/枪械攻击模式）
-     * 3. 设置攻击目标并发起攻击
+     * 3. 设置攻击目标、写入脑记忆并发起攻击
      */
     public static void armAndAttackMaid(LivingEntity maid, Player targetPlayer, Level level) {
-        if (maidClass == null || !maidClass.isInstance(maid)) return;
+        if (!MaidCompat.isMaid(maid)) return;
 
         try {
             // 1. 获取背包 - getAvailableInv(false) 返回 CombinedInvWrapper（实现 IItemHandler）
-            Object invObj = maidClass.getMethod("getAvailableInv", boolean.class).invoke(maid, false);
-            if (!(invObj instanceof IItemHandler inv)) {
-                CreateLaborRush.LOGGER.debug("MaidRebellionHandler: 获取女仆背包失败，invObj 类型不是 IItemHandler");
+            IItemHandler inv = MaidCompat.getAvailableInv(maid);
+            if (inv == null) {
+                CreateLaborRush.LOGGER.debug("MaidRebellionHandler: 获取女仆背包失败");
                 return;
             }
 
@@ -142,52 +65,33 @@ public class MaidRebellionHandler {
             if (weapon.isEmpty()) {
                 weapon = new ItemStack(net.minecraft.world.item.Items.IRON_SWORD);
             }
-            maidClass.getMethod("setItemSlot", EquipmentSlot.class, ItemStack.class)
-                    .invoke(maid, EquipmentSlot.MAINHAND, weapon);
+            maid.setItemSlot(EquipmentSlot.MAINHAND, weapon);
 
-            // 4. 把女仆任务切换为 attack，激活女仆自身的攻击 AI（近战/远程/枪械追击）
-            // 直接反射 TaskAttack.UID 查任务（比硬编码 "attack" id 更稳）
-            if (taskManagerClass != null && taskInterfaceClass != null) {
-                ORIGINAL_TASKS.putIfAbsent(maid.getUUID(), getCurrentTask(maid));
-                Object taskInstance = null;
-                try {
-                    Object uid = Class.forName("com.github.tartaricacid.touhoulittlemaid.entity.task.TaskAttack")
-                            .getField("UID").get(null);
-                    Object taskOpt = taskManagerClass.getMethod("findTask", ResourceLocation.class)
-                            .invoke(null, uid);
-                    if (taskOpt instanceof Optional<?> opt && opt.isPresent()) {
-                        taskInstance = opt.get();
-                    }
-                } catch (Exception e) {
-                    CreateLaborRush.LOGGER.debug("MaidRebellionHandler: 查找 attack 任务失败", e);
-                }
-                if (taskInstance != null) {
-                    maidClass.getMethod("setTask", taskInterfaceClass).invoke(maid, taskInstance);
-                }
+            // 4. 记录原任务并切换到 attack 任务，激活女仆自身的攻击 AI（近战/远程/枪械追击）
+            Object currentTask = MaidCompat.getCurrentTask(maid);
+            if (currentTask != null) {
+                ORIGINAL_TASKS.putIfAbsent(maid.getUUID(), currentTask);
+            }
+            Object attackTask = MaidCompat.getAttackTask();
+            if (attackTask != null) {
+                MaidCompat.setTask(maid, attackTask);
             }
 
-            // 5. 设置攻击目标（继承自 Mob）
-            maidClass.getMethod("setTarget", LivingEntity.class).invoke(maid, targetPlayer);
+            Mob mob = (Mob) maid;
+            // 5. 设置攻击目标
+            mob.setTarget(targetPlayer);
 
             // 6. 关键：把 ATTACK_TARGET 直接写入女仆脑记忆。
             // 女仆 TaskAttack 用 vanilla StartAttacking：只在脑记忆无目标时才自行寻找
             // （findFirstValidAttackTarget 会被 canAttack 限制，玩家常被排除），
             // 而 MaidMeleeAttack/SetWalkTargetFromAttackTarget 只读脑记忆。setTarget 不写脑记忆。
-            try {
-                Object brain = maidClass.getMethod("getBrain").invoke(maid);
-                Class<?> memClass = Class.forName("net.minecraft.world.entity.ai.memory.MemoryModuleType");
-                Object attackTargetMem = memClass.getField("ATTACK_TARGET").get(null);
-                brain.getClass().getMethod("setMemory", memClass, Object.class)
-                        .invoke(brain, attackTargetMem, targetPlayer);
-            } catch (Exception e) {
-                CreateLaborRush.LOGGER.debug("MaidRebellionHandler: 写入 ATTACK_TARGET 脑记忆失败", e);
-            }
+            mob.getBrain().setMemory(MemoryModuleType.ATTACK_TARGET, targetPlayer);
 
-            // 7. 触发一次立即攻击（继承自 Mob）
-            maidClass.getMethod("doHurtTarget", net.minecraft.world.entity.Entity.class).invoke(maid, targetPlayer);
+            // 7. 触发一次立即攻击
+            mob.doHurtTarget(targetPlayer);
 
         } catch (Exception e) {
-            CreateLaborRush.LOGGER.debug("MaidRebellionHandler: 女仆武装起义反射调用失败", e);
+            CreateLaborRush.LOGGER.debug("MaidRebellionHandler: 女仆武装起义调用失败", e);
         }
     }
 
@@ -197,13 +101,11 @@ public class MaidRebellionHandler {
      * 换成别的东西（打僵尸、帮主人打架、被其他生物打了反击）——专注打玩家。
      */
     public static void forceAttackTarget(LivingEntity maid, LivingEntity target) {
-        if (maidClass == null || !maidClass.isInstance(maid)) return;
+        if (!MaidCompat.isMaid(maid)) return;
         try {
-            maidClass.getMethod("setTarget", LivingEntity.class).invoke(maid, target);
-            if (getBrainMethod != null && setMemoryMethod != null && attackTargetMemoryType != null) {
-                Object brain = getBrainMethod.invoke(maid);
-                setMemoryMethod.invoke(brain, attackTargetMemoryType, target);
-            }
+            Mob mob = (Mob) maid;
+            mob.setTarget(target);
+            mob.getBrain().setMemory(MemoryModuleType.ATTACK_TARGET, target);
         } catch (Exception e) {
             CreateLaborRush.LOGGER.debug("MaidRebellionHandler: 强制攻击目标失败", e);
         }
@@ -214,28 +116,21 @@ public class MaidRebellionHandler {
      * 即使她被其他生物攻击也不反击，不打任何非玩家目标。
      */
     public static void clearAttackTarget(LivingEntity maid) {
-        if (maidClass == null || !maidClass.isInstance(maid)) return;
+        if (!MaidCompat.isMaid(maid)) return;
         try {
-            maidClass.getMethod("setTarget", LivingEntity.class).invoke(maid, new Object[]{null});
-            if (getBrainMethod != null && eraseMemoryMethod != null && attackTargetMemoryType != null) {
-                Object brain = getBrainMethod.invoke(maid);
-                eraseMemoryMethod.invoke(brain, attackTargetMemoryType);
-            }
+            Mob mob = (Mob) maid;
+            mob.setTarget(null);
+            mob.getBrain().eraseMemory(MemoryModuleType.ATTACK_TARGET);
         } catch (Exception e) {
             CreateLaborRush.LOGGER.debug("MaidRebellionHandler: 清空攻击目标失败", e);
         }
     }
 
     /**
-     * 反射调用女仆 GunCommonUtil.isGun 检测枪械（TACZ/SWarfare 软依赖）
+     * 检测枪械（TACZ/SWarfare 软依赖，未安装时返回 false）
      */
     private static boolean isGunItem(ItemStack stack) {
-        if (gunUtilClass == null) return false;
-        try {
-            return (boolean) gunUtilClass.getMethod("isGun", ItemStack.class).invoke(null, stack);
-        } catch (Exception e) {
-            return false;
-        }
+        return MaidCompat.isGunItem(stack);
     }
 
     /**
@@ -268,7 +163,7 @@ public class MaidRebellionHandler {
 
             // 第一优先级：枪械（TACZ / SWarfare），选择伤害最高的一把
             if (isGunItem(stack)) {
-                // 枪械伤害无法直接读取，无法比较时取第一把；后续可反射枪械属性比较
+                // 枪械伤害无法直接读取，无法比较时取第一把；后续可比较枪械属性
                 if (bestGun.isEmpty()) {
                     bestGun = stack;
                 }
@@ -341,37 +236,23 @@ public class MaidRebellionHandler {
     }
 
     /**
-     * 反射读取女仆当前任务（IMaidTask）
-     */
-    private static Object getCurrentTask(LivingEntity maid) {
-        try {
-            return maidClass.getMethod("getTask").invoke(maid);
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    /**
      * 起义结束后恢复女仆：切回起义前的任务（无记录则切回默认 idle），
      * 重建脑任务并清除攻击目标，让她回去干活
      */
     public static void restoreMaid(LivingEntity maid, ServerLevel level) {
-        if (maidClass == null || !maidClass.isInstance(maid)) return;
+        if (!MaidCompat.isMaid(maid)) return;
 
         try {
             Object originalTask = ORIGINAL_TASKS.remove(maid.getUUID());
-            if (originalTask == null && taskManagerClass != null) {
+            if (originalTask == null) {
                 // 起义前没有记录到原任务时，切回默认 idle 任务
-                try {
-                    originalTask = taskManagerClass.getMethod("getIdleTask").invoke(null);
-                } catch (Exception ignored) {
-                }
+                originalTask = MaidCompat.getIdleTask();
             }
-            if (originalTask != null && taskInterfaceClass != null) {
-                maidClass.getMethod("setTask", taskInterfaceClass).invoke(maid, originalTask);
+            if (originalTask != null) {
+                MaidCompat.setTask(maid, originalTask);
                 // 任务切换后必须重建脑任务，否则女仆 AI 还是旧的攻击任务
                 if (level != null) {
-                    maidClass.getMethod("refreshBrain", ServerLevel.class).invoke(maid, level);
+                    MaidCompat.refreshBrain(maid, level);
                 }
             }
             // 清除攻击目标 + 擦除 ATTACK_TARGET 脑记忆（防止恢复后还记着玩家目标）
@@ -384,15 +265,14 @@ public class MaidRebellionHandler {
     /**
      * 显示起义气泡对话
      * <p>
-     * 使用 1.2.1 女仆的实际气泡 API：EntityMaid.addChatBubble(long, ChatText)。
-     * 对话内容通过 lang 文件实现国际化，根据游戏语言自动切换中/英。
-     * 反射失败时只记录日志，不再给女仆改名（用户明确要求气泡而非头顶文字）。
+     * 对话内容通过 lang 文件实现国际化。使用 TLM 官方气泡 API
+     * （ChatBubbleManager + TextChatBubbleData），失败时只记录日志，不给女仆改名。
      *
      * @param maid      女仆实体
      * @param ownerName 女仆主人名字（通过 getOwner() 获取），可为 null
      */
     public static void showRebellionBubble(LivingEntity maid, String ownerName) {
-        if (maidClass == null || !maidClass.isInstance(maid)) return;
+        if (!MaidCompat.isMaid(maid)) return;
 
         // 随机选取对话（通过 lang 键，自动切换语言）
         String key = "chat.createlaborrush.maid.dialogue." + RANDOM.nextInt(DIALOGUES_COUNT);
@@ -404,26 +284,8 @@ public class MaidRebellionHandler {
             dialogue = prefix + dialogue;
         }
 
-        try {
-            if (chatTextClass == null || chatTextTypeClass == null || chatBubbleMangerClass == null) {
-                CreateLaborRush.LOGGER.debug("MaidRebellionHandler: 女仆气泡类不可用，跳过气泡");
-                return;
-            }
-            // ChatText 序列化会无条件编码 iconPath，必须用 EMPTY_ICON_PATH（null 会导致
-            // SynchedEntityData 编码 NPE 使玩家掉线）
-            Object emptyIcon = chatTextClass.getField("EMPTY_ICON_PATH").get(null);
-            Object textType = chatTextTypeClass.getMethod("valueOf", String.class).invoke(null, "TEXT");
-            Object chatText = chatTextClass.getConstructor(chatTextTypeClass, ResourceLocation.class, String.class)
-                    .newInstance(textType, emptyIcon, dialogue);
-            // 时间戳必须用 ChatBubbleManger.getEndTime()（currentTimeMillis 会被渲染端视为已过期而不显示）
-            var endTimeMethod = chatBubbleMangerClass.getDeclaredMethod("getEndTime");
-            endTimeMethod.setAccessible(true);
-            long endTime = (long) endTimeMethod.invoke(null);
-            // maid.addChatBubble(endTime, chatText)
-            maidClass.getMethod("addChatBubble", long.class, chatTextClass)
-                    .invoke(maid, endTime, chatText);
-        } catch (Exception e) {
-            CreateLaborRush.LOGGER.info("MaidRebellionHandler: 女仆气泡显示失败（不做改名降级）", e);
+        if (!MaidCompat.showTextBubble(maid, dialogue)) {
+            CreateLaborRush.LOGGER.info("MaidRebellionHandler: 女仆气泡显示失败（不做改名降级）");
         }
     }
 }

@@ -3,7 +3,7 @@ package com.xiaoou.rush;
 import net.minecraftforge.common.ForgeConfigSpec;
 
 public class Config {
-    static final ForgeConfigSpec SPEC;
+    public static final ForgeConfigSpec SPEC;
 
     public static final ForgeConfigSpec.DoubleValue DESTROY_CHANCE;
 
@@ -73,5 +73,63 @@ public class Config {
 
         builder.pop();
         SPEC = builder.build();
+    }
+
+    /**
+     * 全量配置值快照，用于客户端与服务端之间同步。
+     */
+    public record Values(
+        double destroyChance, double destroyRatioMin, double destroyRatioMax,
+        boolean rebellionEnabled, int rebellionTriggerTime, double rebellionChance,
+        int rebellionDuration, int rebellionRadius, boolean canDestroyDevices,
+        int destroyCooldown, double destroyIntensity
+    ) {}
+
+    /** 读取当前全部配置值 */
+    public static Values current() {
+        return new Values(
+            DESTROY_CHANCE.get(), DESTROY_RATIO_MIN.get(), DESTROY_RATIO_MAX.get(),
+            REBELLION_ENABLED.get(), REBELLION_TRIGGER_TIME.get(), REBELLION_CHANCE.get(),
+            REBELLION_DURATION.get(), REBELLION_RADIUS.get(), REBELLION_CAN_DESTROY.get(),
+            REBELLION_DESTROY_COOLDOWN.get(), REBELLION_DESTROY_INTENSITY.get()
+        );
+    }
+
+    /**
+     * 把快照写入内存（不落盘），并返回实际写入的值——数值会被夹到 defineInRange
+     * 声明的合法区间内，避免网络包里传来的越界值污染配置文件。
+     */
+    public static Values applyInMemory(Values v) {
+        Values c = new Values(
+            clamp01(v.destroyChance()), clamp01(v.destroyRatioMin()), clamp01(v.destroyRatioMax()),
+            v.rebellionEnabled(), clamp(v.rebellionTriggerTime(), 10, 3600), clamp01(v.rebellionChance()),
+            clamp(v.rebellionDuration(), 5, 600), clamp(v.rebellionRadius(), 1, 32), v.canDestroyDevices(),
+            clamp(v.destroyCooldown(), 1, 60), clamp01(v.destroyIntensity())
+        );
+        DESTROY_CHANCE.set(c.destroyChance());
+        DESTROY_RATIO_MIN.set(c.destroyRatioMin());
+        DESTROY_RATIO_MAX.set(c.destroyRatioMax());
+        REBELLION_ENABLED.set(c.rebellionEnabled());
+        REBELLION_TRIGGER_TIME.set(c.rebellionTriggerTime());
+        REBELLION_CHANCE.set(c.rebellionChance());
+        REBELLION_DURATION.set(c.rebellionDuration());
+        REBELLION_RADIUS.set(c.rebellionRadius());
+        REBELLION_CAN_DESTROY.set(c.canDestroyDevices());
+        REBELLION_DESTROY_COOLDOWN.set(c.destroyCooldown());
+        REBELLION_DESTROY_INTENSITY.set(c.destroyIntensity());
+        return c;
+    }
+
+    /** 把内存中的配置写回配置文件 */
+    public static void save() {
+        SPEC.save();
+    }
+
+    private static double clamp01(double value) {
+        return Double.isFinite(value) ? Math.max(0.0, Math.min(1.0, value)) : 0.0;
+    }
+
+    private static int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
     }
 }

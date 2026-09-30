@@ -85,5 +85,45 @@
   "chat.createlaborrush.maid.dialogue.18": "Youmu has joined me!",
   "chat.createlaborrush.maid.dialogue.19": "Lady Yuyuko approves our strike!",
   "chat.createlaborrush.maid.dialogue.20": "SDM's rules? They're changing today!",
-  "chat.createlaborrush.maid.dialogue.21": "Yukari Yakumo says this is interesting!"
+  "chat.createlaborrush.maid.dialogue.21": "Yukari Yakumo says this is interesting!",
+
+  "createlaborrush.config.title": "Create: Labor Rush Config",
+  "createlaborrush.config.scroll": "%d-%d / %d",
+  "createlaborrush.config.section.work": "Processing",
+  "createlaborrush.config.section.rebellion": "Worker Rebellion",
+
+  "createlaborrush.config.destroyChance": "Item Destroy Chance",
+  "createlaborrush.config.destroyChance.tooltip": "Probability an item is destroyed during processing (0.0-1.0)",
+  "createlaborrush.config.destroyRatioMin": "Min Destroy Ratio",
+  "createlaborrush.config.destroyRatioMin.tooltip": "Minimum share of a batch destroyed when triggered (0.0-1.0)",
+  "createlaborrush.config.destroyRatioMax": "Max Destroy Ratio",
+  "createlaborrush.config.destroyRatioMax.tooltip": "Maximum share of a batch destroyed when triggered (0.0-1.0)",
+
+  "createlaborrush.config.enableRebellion": "Enable Worker Rebellion",
+  "createlaborrush.config.enableRebellion.tooltip": "When off, no new rebellion will start automatically",
+  "createlaborrush.config.rebellionTriggerTime": "Rebellion Base Trigger Time",
+  "createlaborrush.config.rebellionTriggerTime.tooltip": "Workers must accumulate this many seconds of work before a rebellion can trigger",
+  "createlaborrush.config.rebellionChance": "Rebellion Chance",
+  "createlaborrush.config.rebellionChance.tooltip": "Checked every 10 seconds; base probability per check (0.0-1.0)",
+  "createlaborrush.config.rebellionDuration": "Rebellion Duration",
+  "createlaborrush.config.rebellionDuration.tooltip": "How long a rebellion lasts (seconds)",
+  "createlaborrush.config.rebellionRadius": "Rebellion Radius",
+  "createlaborrush.config.rebellionRadius.tooltip": "Radius used to gather fellow workers when a rebellion starts (blocks)",
+  "createlaborrush.config.canDestroyDevices": "Allow Rebels to Destroy Devices",
+  "createlaborrush.config.canDestroyDevices.tooltip": "Whether rebels may demolish nearby devices",
+  "createlaborrush.config.destroyCooldown": "Demolition Cooldown",
+  "createlaborrush.config.destroyCooldown.tooltip": "How long a rebel must wait after destroying a device (seconds)",
+  "createlaborrush.config.destroyIntensity": "Demolition Intensity",
+  "createlaborrush.config.destroyIntensity.tooltip": "Higher = more destruction, 0 = never (0.0-1.0)",
+
+  "itemGroup.createlaborrush": "Create: Labor Rush",
+  "painting.createlaborrush.slogan.title": "Time is Money, Efficiency is Life",
+  "painting.createlaborrush.slogan.author": "Labor Rush",
+  "item.createlaborrush.tall_hat": "Struggle Hat",
+  "item.createlaborrush.tall_hat.desc.0": "Wear it, and today's struggle session is all yours.",
+  "item.createlaborrush.capital_hat": "Capitalist Hat",
+  "item.createlaborrush.capital_hat.desc.0": "A black felt hat with the brim pulled down low.",
+
+  "chat.createlaborrush.config.no_permission": "§cOnly server operators can change this mod's configuration.",
+  "chat.createlaborrush.config.updated": "§aConfiguration updated and synced to all players."
 }

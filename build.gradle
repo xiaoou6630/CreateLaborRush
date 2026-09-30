@@ -92,7 +92,11 @@ dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
 
     implementation fg.deobf(project.files('libs/create-6.0.8.jar'))
-    implementation fg.deobf(project.files('libs/create_labor-1.4.1.jar'))
+    implementation fg.deobf(project.files('libs/create_labor-1.5.3.1-forge-1.20.1.jar'))
+    // 车万女仆（TLM）：编译期依赖，供直接调用其 API（替代反射）。
+    // 运行期为软依赖（mods.toml 里 mandatory=false），玩家不装也能进游戏。
+    // 注意：这里的 implementation 只是放进编译/开发运行类路径，Gradle 不会把它打进本模组的 jar。
+    implementation fg.deobf(project.files('libs/touhoulittlemaid-1.5.3-forge-1.20.1.jar'))
 
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 }
