@@ -3,6 +3,7 @@ package com.xiaoou.rush.handler;
 import com.simibubi.create.content.redstone.deskBell.DeskBellBlock;
 import com.xiaoou.rush.CreateLaborRush;
 import com.xiaoou.rush.util.WorkerHelper;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.level.block.BellBlock;
@@ -21,6 +22,14 @@ public class BellWorkHandler {
             return;
 
         if (event.getLevel().isClientSide) return;
+
+        // 起义区域内敲钟 → 钟声和平平息起义（成就：和平使者）
+        if (event.getLevel() instanceof ServerLevel serverLevel
+                && RebellionSystem.hasActiveRebellion(serverLevel, event.getPos())
+                && RebellionSystem.pacifyActiveRebellion(serverLevel)
+                && event.getEntity() instanceof ServerPlayer bellRinger) {
+            AchievementHandler.grantAchievement(bellRinger, AchievementHandler.PEACE_BELL);
+        }
 
         // 如果玩家手持附魔钟/附魔呼唤铃，由 BellEnchantHandler 处理
         var stack = event.getEntity().getMainHandItem();

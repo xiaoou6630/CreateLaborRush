@@ -136,6 +136,8 @@ public class BellEnchantHandler {
     @SubscribeEvent
     public static void onBlockBreak(BlockEvent.BreakEvent event) {
         if (!(event.getLevel() instanceof ServerLevel serverLevel)) return;
+        // 领地/保护类 mod 已经拒绝破坏时不要插手，否则会在受保护区域凭空刷出附魔钟
+        if (event.isCanceled()) return;
         BlockState state = serverLevel.getBlockState(event.getPos());
         if (!isBellBlock(state.getBlock())) return;
 
@@ -146,10 +148,12 @@ public class BellEnchantHandler {
         }
 
         if (placed != null && (placed[0] > 0 || placed[1] > 0)) {
-            // 取消原版破坏（防止掉落普通钟），改为掉落附魔钟
+            // 取消原版破坏（防止掉落普通钟），改为掉落附魔钟。
+            // 必须按 destroyBlock 的返回值决定是否掉落：若方块因保护等原因没被移除，
+            // 无条件生成掉落物等于凭空刷物品。
             event.setCanceled(true);
+            if (!serverLevel.destroyBlock(event.getPos(), false)) return;
             ItemStack bell = buildEnchantedStack(serverLevel, state.getBlock(), placed[0], placed[1]);
-            serverLevel.destroyBlock(event.getPos(), false);
             net.minecraft.world.entity.item.ItemEntity item = new net.minecraft.world.entity.item.ItemEntity(serverLevel,
                 event.getPos().getX() + 0.5, event.getPos().getY() + 0.5, event.getPos().getZ() + 0.5, bell);
             serverLevel.addFreshEntity(item);
@@ -218,12 +222,11 @@ public class BellEnchantHandler {
 
             living.addEffect(new MobEffectInstance(ModEffects.WORK_EFFECT, 90 * 20, amplifier, false, true, false));
 
-            // 火焰附加：点燃工人 + 火焰粒子环绕（火焰I 2秒 / 火焰II 4秒）
-            if (fireAspectLevel > 0) {
-                living.setRemainingFireTicks(fireAspectLevel >= 2 ? 80 : 40);
-                if (level instanceof ServerLevel slLevel) {
-                    startFlameWreath(slLevel, living, fireAspectLevel >= 2 ? 80 : 60);
-                }
+            // 火焰附加：纯视觉效果（火焰粒子环绕），不点燃工人。
+            // 之前会调用 setRemainingFireTicks 真的点火，再靠 FireDamageHandler 把火焰伤害清零，
+            // 副作用是工人在持续期间对岩浆/烈焰人/玩家火焰附加全部免疫。改纯粒子后这个副作用自然消失。
+            if (fireAspectLevel > 0 && level instanceof ServerLevel slLevel) {
+                startFlameWreath(slLevel, living, fireAspectLevel >= 2 ? 80 : 60);
             }
 
             // 引雷：触发引雷特效（蓝色光柱/闪电炸裂/冲击波/电流缠绕/地面余波）

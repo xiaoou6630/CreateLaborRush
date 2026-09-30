@@ -4,6 +4,8 @@ import com.xiaoou.rush.CreateLaborRush;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 
+import java.util.List;
+
 public class AchievementHandler {
 
     // ====== 成就 ID 常量 ======
@@ -44,6 +46,14 @@ public class AchievementHandler {
     private AchievementHandler() {
     }
 
+    /** 除"刑部尚书"之外的 18 个成就 */
+    private static final List<ResourceLocation> ALL_ACHIEVEMENTS_LIST = List.of(
+        FIRST_WHIP, SUSTAINABLE, WHIP_10_TIMES, FIRE_ASPECT_1, FIRST_BELL_ENCHANT,
+        FIRE_ASPECT_2, REBELLION_3_PEOPLE, PEACE_AMBASSADOR, LIGHTNING_WHIP, LIGHTNING_BELL,
+        FIRST_REBELLION, LIGHTNING_5_WHIP, SUPPRESSOR, REBELLION_LEADER_3, PEACE_BELL,
+        DEMOLITION_SQUAD, REBEL_KILLER_3, LIGHTNING_SUPPRESSOR
+    );
+
     /**
      * 授予成就
      */
@@ -67,5 +77,25 @@ public class AchievementHandler {
         } else {
             CreateLaborRush.LOGGER.info("[Achievement] {} already done", achievementId);
         }
+
+        // 其余 18 个都达成后自动授予"刑部尚书"。它自己的 criterion 是 minecraft:impossible，
+        // 只能靠代码给，所以必须在这里补上，否则"完成所有成就"永远拿不到
+        if (!ALL_ACHIEVEMENTS.equals(achievementId) && hasAllAchievements(player)) {
+            grantAchievement(player, ALL_ACHIEVEMENTS);
+        }
+    }
+
+    /** 检查除"刑部尚书"之外的 18 个成就是否都已达成 */
+    private static boolean hasAllAchievements(ServerPlayer player) {
+        var server = player.getServer();
+        if (server == null) return false;
+
+        var playerAdvancements = player.getAdvancements();
+        for (ResourceLocation id : ALL_ACHIEVEMENTS_LIST) {
+            var advancement = server.getAdvancements().get(id);
+            if (advancement == null) return false;
+            if (!playerAdvancements.getOrStartProgress(advancement).isDone()) return false;
+        }
+        return true;
     }
 }
