@@ -35,17 +35,15 @@ public class LeadHandler {
     public static void onAttackEntity(AttackEntityEvent event) {
         var player = event.getEntity();
         ItemStack stack = player.getMainHandItem();
-        CreateLaborRush.LOGGER.info("[LeadHandler] AttackEntityEvent fired, hand={}, target={}",
-            stack.getItem(), event.getTarget());
         if (stack.getItem() != Items.LEAD) return;
 
         Entity target = event.getTarget();
         if (!(target instanceof LivingEntity living)) return;
         if (!WorkerUtil.isWorkerEntity(target) && !WorkerTypeDetector.isWorker(living)) {
-            CreateLaborRush.LOGGER.info("[LeadHandler] target {} is not a worker", target);
+            CreateLaborRush.LOGGER.debug("[LeadHandler] target {} is not a worker", target);
             return;
         }
-        CreateLaborRush.LOGGER.info("[LeadHandler] whipping worker {}", living.getStringUUID());
+        CreateLaborRush.LOGGER.debug("[LeadHandler] whipping worker {}", living.getStringUUID());
 
         Level level = target.level();
         if (level.isClientSide) return;

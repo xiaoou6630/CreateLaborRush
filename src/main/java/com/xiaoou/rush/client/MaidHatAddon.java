@@ -1,7 +1,6 @@
 package com.xiaoou.rush.client;
 
 import com.github.tartaricacid.touhoulittlemaid.api.ILittleMaid;
-import com.github.tartaricacid.touhoulittlemaid.api.LittleMaidExtension;
 import com.github.tartaricacid.touhoulittlemaid.client.renderer.entity.EntityMaidRenderer;
 import com.github.tartaricacid.touhoulittlemaid.client.renderer.entity.GeckoEntityMaidRenderer;
 import com.xiaoou.rush.ModItems;
@@ -10,33 +9,46 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Mob;
 
 /**
- * 车万女仆(TLM) 扩展入口：给女仆注册本模组帽子的渲染层（高帽 + 资本帽各一层）。
+ * 车万女仆(TLM) 扩展：给女仆挂本模组的帽子渲染层（高帽 / 资本帽各一层）。
  *
- * <p>TLM 的 addon 发现机制是「注解扫描」：它在 {@code CommonRegistry.modApiInit()} 里调用
- * {@code AnnotatedInstanceUtil.getModExtensions()}，遍历所有已加载模组的
- * {@code ModFileScanData} 注解，找出标了 {@link LittleMaidExtension} 的类，
- * 再用 {@code Class.forName(...).newInstance()} 实例化（因此需要一个公开无参构造）。
- * 换句话说：只要本类带上 {@code @LittleMaidExtension} 并实现 {@code ILittleMaid}，
- * TLM 就会自动发现它，我们不需要向任何总线主动注册。
- *
- * <p>这也天然构成了「类隔离」：
+ * <p><b>必须走 TLM 的 {@link ILittleMaid} 扩展接口，两个回调都要实现。</b>
+ * TLM 的女仆模型有两条互斥渲染路径（已核对 TLM 1.5.3 字节码）：
  * <ul>
- *   <li>没装 TLM 时，没有任何代码会去加载本类（本模组其它地方完全不引用它），
- *       本类也永远不会被实例化，因此它引用的 TLM 类型不会被解析，
- *       与 TLM 无关的玩家不会因为缺少 TLM 而崩溃；</li>
- *   <li>装了 TLM 时，只有 TLM 会反射加载本类。</li>
+ *   <li>Bedrock 模型：{@code EntityMaidRenderer.render} 最后会调 {@code super.render(...)}，
+ *       只有这条路才会遍历 {@code RenderLayer} 列表 → 用 {@link #addAdditionMaidLayer}；</li>
+ *   <li>Gecko / YSM 模型：{@code EntityMaidRenderer.render} 在调 {@code super.render} 之前
+ *       就 {@code return} 了（转交给内部的 {@code GeckoEntityMaidRenderer}），挂在
+ *       {@code EntityMaidRenderer} 上的 {@code RenderLayer} 一次都不会执行
+ *       → 必须用 {@link #addAdditionGeckoMaidLayer} 挂到那个内部渲染器上。</li>
  * </ul>
- * 所以这里不需要（也不应该）用 {@code ModList.get().isLoaded(...)} 做判断——
- * 一旦在本类里写这种判断，反而会让入口类在无 TLM 时也被加载。
+ * 注意 {@code GeckoEntityMaidRenderer} 是 {@code EntityMaidRenderer} 的私有字段，
+ * 外部拿不到实例，所以 Gecko 路径只能靠 TLM 回调，不能自己从渲染器注册表里找
+ * （渲染器注册表里只有 {@code EntityMaidRenderer}）。
+ *
+ * <p><b>本类怎么被 TLM 发现：</b>不使用 {@code @LittleMaidExtension} 注解，而是在客户端
+ * 初始化时手动 {@code TouhouLittleMaid.EXTENSIONS.add(new MaidHatAddon())}
+ * （见 {@code MaidHatClientEvents#onClientSetup}）。原因：TLM 的注解扫描
+ * {@code AnnotatedInstanceUtil.getInstances} 在专用服务器上同样执行，会对带注解的类
+ * 直接 {@code Class.forName}；而本类的方法签名引用客户端渲染器类型
+ * （{@code EntityMaidRenderer} 的继承链里有服务端不存在的 {@code RenderLayerParent}），
+ * 服务器上必然抛 {@code NoClassDefFoundError}（2026-10-02 服务器日志已实锤：
+ * {@code Failed to load: com.xiaoou.rush.client.MaidHatAddon}）。
+ * 手动注册只发生在客户端，专用服务器永远不会加载本类。
+ *
+ * <p>TLM 的 {@code EntityMaidRenderer} / {@code GeckoEntityMaidRenderer} 构造函数里
+ * 是直接读 {@code TouhouLittleMaid.EXTENSIONS} 静态字段来遍历回调的，所以只要在渲染器
+ * 创建之前（客户端 setup 阶段）把本实例加进列表即可生效。
  */
-@LittleMaidExtension
-public class MaidHatAddon implements ILittleMaid {
+public final class MaidHatAddon implements ILittleMaid {
 
     /** 两张帽子贴图都是 64x64，与玩家盔甲层共用 */
     private static final ResourceLocation TALL_HAT_TEXTURE =
         new ResourceLocation("createlaborrush", "textures/models/armor/tall_hat_layer_1.png");
     private static final ResourceLocation CAPITAL_HAT_TEXTURE =
         new ResourceLocation("createlaborrush", "textures/models/armor/capital_hat_layer_1.png");
+
+    public MaidHatAddon() {
+    }
 
     /**
      * 默认 Bedrock 模型路径：往 {@link EntityMaidRenderer} 上挂两层。
@@ -53,7 +65,7 @@ public class MaidHatAddon implements ILittleMaid {
     }
 
     /**
-     * GeckoLib 模型路径：往 {@link GeckoEntityMaidRenderer} 上挂两层。
+     * GeckoLib / YSM 模型路径：往 TLM 内部的 {@link GeckoEntityMaidRenderer} 上挂两层。
      */
     @Override
     public void addAdditionGeckoMaidLayer(GeckoEntityMaidRenderer<? extends Mob> renderer,

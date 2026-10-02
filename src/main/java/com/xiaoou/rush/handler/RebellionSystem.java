@@ -37,6 +37,7 @@ import net.minecraftforge.fml.common.Mod;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -137,6 +138,8 @@ public class RebellionSystem {
         final Map<UUID, Integer> nextDemolitionTicks = new HashMap<>();
         // 记录每个工人UUID的起义次数，用于"反抗军领袖"成就
         final Map<UUID, Integer> workerRebellionCount = new HashMap<>();
+        // 叛军所在区块被卸载时挂起的 UUID -> 最后已知位置：区块重新加载后按 UUID 找回实体，起义继续
+        final Map<UUID, BlockPos> suspendedRebels = new HashMap<>();
 
         RebellionData(ResourceKey<Level> dimension, BlockPos origin) {
             this.dimension = dimension;
@@ -202,7 +205,7 @@ public class RebellionSystem {
         // 等级越高概率越高：0级=1x，1级=2x，2级=3x
         double chance = Math.min(1.0, Config.REBELLION_CHANCE.get() * (1 + maxAmplifier));
         double roll = level.random.nextDouble();
-        CreateLaborRush.LOGGER.info("[Rebellion] auto-check: {} working workers, maxAmplifier={}, chance={}, roll={}",
+        CreateLaborRush.LOGGER.debug("[Rebellion] auto-check: {} working workers, maxAmplifier={}, chance={}, roll={}",
             workingWorkers.size(), maxAmplifier, chance, roll);
 
         if (roll < chance) {
@@ -476,10 +479,33 @@ public class RebellionSystem {
     }
 
     private static void tickRebellion(ServerLevel level, RebellionData data) {
-        data.rebels.removeIf(rebel -> !rebel.isAlive());
+        // 死亡的叛军移除；区块卸载的叛军挂起（等区块加载回来按 UUID 找回），不算阵亡
+        Iterator<LivingEntity> rebelIt = data.rebels.iterator();
+        while (rebelIt.hasNext()) {
+            LivingEntity rebel = rebelIt.next();
+            if (rebel.isRemoved()) {
+                Entity.RemovalReason reason = rebel.getRemovalReason();
+                // 1.20.1 的 RemovalReason 只有 UNLOADED_TO_CHUNK / UNLOADED_WITH_PLAYER
+                // （UNLOADED_WITH_CHUNK 是 1.21.2+ 才有的常量，这里不能引用）
+                if (reason == Entity.RemovalReason.UNLOADED_TO_CHUNK) {
+                    data.suspendedRebels.put(rebel.getUUID(), rebel.blockPosition());
+                }
+                rebelIt.remove();
+            } else if (!rebel.isAlive()) {
+                rebelIt.remove();
+            }
+        }
+
+        // 尝试找回之前因区块卸载而挂起的叛军
+        resumeSuspendedRebels(level, data);
 
         if (data.rebels.isEmpty()) {
-            endRebellion(level, data, true, false);
+            if (data.suspendedRebels.isEmpty()) {
+                endRebellion(level, data, true, false);
+                return;
+            }
+            // 全部叛军都在卸载区块中 → 起义直接暂停：不推进倒计时、不跑 AI、不触碰方块
+            //（否则 getBlockState/寻路会同步加载区块，服务器会被读盘拖垮）
             return;
         }
 
@@ -520,6 +546,34 @@ public class RebellionSystem {
         }
 
         processRebelAI(level, data);
+    }
+
+    /**
+     * 区块重新加载后找回挂起的叛军（按 UUID 从已加载实体里取，绝不触发区块加载）。
+     * 区块已加载但实体已不存在（被清除等）→ 放弃该叛军。
+     */
+    private static void resumeSuspendedRebels(ServerLevel level, RebellionData data) {
+        if (data.suspendedRebels.isEmpty()) return;
+        data.suspendedRebels.entrySet().removeIf(entry -> {
+            if (!isChunkLoaded(level, entry.getValue())) {
+                return false; // 所在区块仍未加载 → 继续挂起
+            }
+            Entity e = level.getEntity(entry.getKey());
+            if (e instanceof LivingEntity living && living.isAlive() && !living.isRemoved()) {
+                data.rebels.add(living);
+                CreateLaborRush.LOGGER.debug(
+                    "[Rebellion] rebel {} resumed after chunk reload at {}", entry.getKey(), entry.getValue());
+            } else {
+                CreateLaborRush.LOGGER.debug(
+                    "[Rebellion] rebel {} gone after chunk reload, dropped", entry.getKey());
+            }
+            return true; // 区块已加载：要么找回要么放弃，不再挂起
+        });
+    }
+
+    /** 区块是否已加载（纯查询，绝不触发加载） */
+    private static boolean isChunkLoaded(ServerLevel level, BlockPos pos) {
+        return level.getChunkSource().hasChunk(pos.getX() >> 4, pos.getZ() >> 4);
     }
 
     private static void tryContagion(ServerLevel level, RebellionData data) {
@@ -650,9 +704,9 @@ public class RebellionSystem {
         if (rebel.tickCount < data.nextDemolitionTicks.getOrDefault(rebelId, 0)) return;
         BlockPos target = data.demolitionTargets.get(rebelId);
 
-        // 无目标 / 目标已被拆 / 目标太远 → 重新找一个（换目标时重置挖掘进度）
+        // 无目标 / 目标已被拆 / 目标太远 / 目标区块未加载 → 重新找一个（换目标时重置挖掘进度）
         if (target == null || !target.closerThan(rebelPos, 24)
-                || level.getBlockState(target).isAir()) {
+                || (isChunkLoaded(level, target) && level.getBlockState(target).isAir())) {
             target = findDemolitionTarget(level, rebelPos, maxSearchRadius);
             if (target == null) return;
             data.demolitionTargets.put(rebelId, target);
@@ -667,15 +721,26 @@ public class RebellionSystem {
             return;
         }
 
-        // 到达目标 → 按"空手挖掘速度"累积进度：挖掘时间 = 方块硬度（秒），每 tick 推进 1/20
+        // 到达目标 → 按玩家空手挖掘公式累积进度（不吃挖掘疲劳，速度与玩家徒手一致）：
+        // 每 tick 进度 = 1 / 硬度 / 30（徒手可掉落）或 1 / 硬度 / 100（需要工具），累计到 1 破坏
         BlockState state = level.getBlockState(target);
         if (state.isAir()) {
             data.demolitionTargets.remove(rebelId);
             data.demolitionProgress.remove(rebelId);
             return;
         }
-        float destroySpeed = Math.max(0.1f, state.getDestroySpeed(level, target));
-        float progress = data.demolitionProgress.getOrDefault(rebelId, 0f) + 0.05f / destroySpeed;
+        float hardness = state.getDestroySpeed(level, target);
+        if (hardness < 0) {
+            // 硬度 -1（基岩/屏障等）：玩家空手永远挖不掉 → 换目标（无需黑名单）
+            data.demolitionTargets.remove(rebelId);
+            data.demolitionProgress.remove(rebelId);
+            return;
+        }
+        // 徒手速度 1.0；requiresCorrectToolForDrops 的方块（石头等）走 /100 慢速路径，和玩家空手一致
+        // 硬度 0（火把/TNT 等）→ 进度无穷大，本 tick 直接破坏，同玩家瞬破
+        boolean canHarvest = !state.requiresCorrectToolForDrops();
+        float perTick = canHarvest ? 1.0f / hardness / 30f : 1.0f / hardness / 100f;
+        float progress = data.demolitionProgress.getOrDefault(rebelId, 0f) + perTick;
         data.demolitionProgress.put(rebelId, progress);
 
         // 敲击音效（每 4 tick 一下）
@@ -692,9 +757,9 @@ public class RebellionSystem {
                 5, 0.3, 0.3, 0.3, 0.05
             );
             data.destroyedBlockCount++;
-            CreateLaborRush.LOGGER.info(
+            CreateLaborRush.LOGGER.debug(
                 "Rebel at {} destroyed block at {} (hardness {})",
-                rebelPos, target, destroySpeed
+                rebelPos, target, hardness
             );
             data.demolitionTargets.remove(rebelId);
             data.demolitionProgress.remove(rebelId);
@@ -714,6 +779,7 @@ public class RebellionSystem {
                 int z = center.getZ() + level.random.nextInt(half) - radius;
                 BlockPos pos = new BlockPos(x, y, z);
                 if (pos.equals(center.below())) continue;
+                if (!isChunkLoaded(level, pos)) continue; // 区块未加载不读，防止同步加载
                 BlockState state = level.getBlockState(pos);
                 if (state.isAir() || state.is(Blocks.BEDROCK)) continue;
                 if (state.getBlock() instanceof net.minecraft.world.level.block.BushBlock) continue;
@@ -842,7 +908,7 @@ public class RebellionSystem {
             Entity seat = data.savedSeats.get(rebel.getUUID());
             if (seat != null && seat.isAlive() && seat.getPassengers().isEmpty()) {
                 boolean ok = rebel.startRiding(seat, true);
-                CreateLaborRush.LOGGER.info(
+                CreateLaborRush.LOGGER.debug(
                     "Rebellion end: rebel {} remount seat at {} ok={} passenger={}",
                     rebel.getUUID(), seat.blockPosition(), ok, rebel.isPassenger()
                 );
@@ -850,7 +916,7 @@ public class RebellionSystem {
                 // create 的座位实体空置后会被自动回收：在原位置重建座位并坐下
                 try {
                     SeatBlock.sitDown(level, seat.blockPosition(), rebel);
-                    CreateLaborRush.LOGGER.info(
+                    CreateLaborRush.LOGGER.debug(
                         "Rebellion end: rebel {} rebuilt seat at {} passenger={}",
                         rebel.getUUID(), seat.blockPosition(), rebel.isPassenger()
                     );
@@ -860,7 +926,7 @@ public class RebellionSystem {
                     );
                 }
             } else {
-                CreateLaborRush.LOGGER.info(
+                CreateLaborRush.LOGGER.debug(
                     "Rebellion end: rebel {} no valid seat (alive={} occupied={})",
                     rebel.getUUID(), seat != null && seat.isAlive(), seat != null && !seat.getPassengers().isEmpty()
                 );
