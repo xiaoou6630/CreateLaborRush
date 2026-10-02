@@ -253,7 +253,7 @@ public class BellEnchantHandler {
             level.playSound(null, event.getPos(), SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 0.8F, 0.6F);
         }
 
-        CreateLaborRush.LOGGER.info("Enchanted bell rung by {} at {}: fireAspect={}, channeling={}, amplifier={}, batch={}",
+        CreateLaborRush.LOGGER.debug("Enchanted bell rung by {} at {}: fireAspect={}, channeling={}, amplifier={}, batch={}",
             player.getName().getString(), event.getPos(), fireAspectLevel, channelingLevel, amplifier, batchSize);
 
         // 成就

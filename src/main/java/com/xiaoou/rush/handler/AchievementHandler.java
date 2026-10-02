@@ -60,13 +60,13 @@ public class AchievementHandler {
     public static void grantAchievement(ServerPlayer player, ResourceLocation achievementId) {
         var server = player.getServer();
         if (server == null) {
-            CreateLaborRush.LOGGER.info("[Achievement] {} grant skipped: server null", achievementId);
+            CreateLaborRush.LOGGER.debug("[Achievement] {} grant skipped: server null", achievementId);
             return;
         }
 
         var advancement = server.getAdvancements().get(achievementId);
         if (advancement == null) {
-            CreateLaborRush.LOGGER.info("[Achievement] {} NOT FOUND in registry!", achievementId);
+            CreateLaborRush.LOGGER.debug("[Achievement] {} NOT FOUND in registry!", achievementId);
             return;
         }
 
@@ -75,7 +75,7 @@ public class AchievementHandler {
             playerAdvancements.award(advancement, "impossible");
             CreateLaborRush.LOGGER.info("[Achievement] {} awarded to {}", achievementId, player.getName().getString());
         } else {
-            CreateLaborRush.LOGGER.info("[Achievement] {} already done", achievementId);
+            CreateLaborRush.LOGGER.debug("[Achievement] {} already done", achievementId);
         }
 
         // 其余 18 个都达成后自动授予"刑部尚书"。它自己的 criterion 是 minecraft:impossible，
